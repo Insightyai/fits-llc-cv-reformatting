@@ -1,0 +1,482 @@
+FITS - Kick off, phase 2 and 3 
+Tue, Jul 7, 2026
+
+0:00 - Natalia at Insighty AI
+Tu tu. Buen día, Jessica, ¿cómo estás? Hola, buen día, Natalia, ¿cómo estás, Santiago?
+
+0:35 - Jeremy Rivera
+Hola, Jessica, ¿cómo estás? Hola, Jessica.
+
+0:37 - Santiago Ciurlo
+Hola, buen día, ¿cómo estás? La camisa lista para el juego de hoy.
+
+0:42 - Natalia at Insighty AI
+Sí, sí, sí. Hoy la se le gana. Hoy ganamos, hoy ganamos. Muy bien. Esperemos que por ahí, yo y Yaritza, ya se acaban de conectar.
+
+0:53 - Jeremy Rivera
+Sí, el día no se va a estar conectando, pero me parece que fue ¿Cómo han estado?
+
+1:01 - Natalia at Insighty AI
+Todo muy bien. ¿Y ustedes qué tal? ¿Cómo han ido todos?
+
+1:10 - Unidentified Speaker
+Bien, bien.
+
+1:12 - Jeremy Rivera
+No, en general todo bien.
+
+1:16 - Natalia at Insighty AI
+Vamos a ver qué pasa hoy con nuestro partido.
+
+1:23 - Jeremy Rivera
+Ah, claro.
+
+1:26 - Jeremy Rivera
+Es bueno.
+
+1:27 - Jeremy Rivera
+Pero han estado buenos los partidos. Sí, sí, sí, sí.
+
+1:32 - Natalia at Insighty AI
+Sí, han estado bastante buenos, la verdad.
+
+1:36 - Unidentified Speaker
+Ya Agustin, Agustin perdido, pero yo sé que...
+
+1:39 - Jeremy Rivera
+Sí, me va a preguntar, pero... Ya barajé el Mundial. Sí. Debe estar con el corazón roto.
+
+1:46 - Natalia at Insighty AI
+Yo estaba viendo el partido de México-Inglaterra, y como yo viví en Inglaterra 10 años, yo iba por Inglaterra. Pero cuando perdieron, si pensé en Agustin, dije, uy, debe estar más triste.
+
+2:01 - Unidentified Speaker
+Sí. Sí.
+
+2:02 - Unidentified Speaker
+Está así, está así.
+
+2:04 - Jeremy Rivera
+Claro, debe estar de bajón.
+
+2:06 - Natalia at Insighty AI
+Bueno, no, si quieren, vayamos empezando, vamos adelantando y esperamos a que Agustin. Yo, bueno, vamos a ir arrancando.
+
+2:15 - Jeremy Rivera
+Yo creo que Agustin, no sé si iba a volar hoy a algún lugar, así que vamos a arrancar.
+
+2:24 - Unidentified Speaker
+¿Listo?
+
+2:24 - Natalia at Insighty AI
+Perfecto. Entonces, bueno, pues, muchísimas gracias por comenzar esta fase dos y tres con nosotros. Digamos que el objetivo de esta sesión es alinearnos, siguientes pasos en términos técnicos que necesitamos de ustedes para empezar el desarrollo, hablar un poquito de las potenciales semanas que vamos a estar haciendo y cualquier dudas o preguntas que ustedes tengan. ¿Listo? Como aquí desde la perspectiva técnica para que le contamos un poquito a FITS que es lo que necesitamos de parte de ellos.
+
+3:02 - Santiago Ciurlo
+Bueno, ¿cómo están? Buen día. Bueno, básicamente como son dos proyectos, hay dos cosas que para nosotros poder arrancar se necesitan. Por el lado, digamos, de lo que es el Contract Renewal, pues obviamente necesitaríamos consultar de ustedes para saber si ya en el SharePoint se encuentran los archivos, el archivo de Excel Maestro, que es el que tiene todos los recursos activos y el de Balance, para entonces, si ya los tienen en ese SharePoint, si nos pueden otorgar, digamos, un permiso de lectura o de pronto también podría ser mejor como un rol administrativo en caso de que necesitamos algún tipo de permiso. Con eso, nosotros pues ya podríamos arrancar a configurar esa lógica. Quedaría pendiente es entender cuál va a ser, digamos, el aprobador final de ese proceso. Si es Agustin, si es así, o si de pronto es Jeremy, no sé, que nos hagan saber quién sería ese aprobador final, de manera que entonces la aprobación derive a ese correo. ¿Y qué otra cosa? No, yo creo que primordialmente eso. Si la migración ya está lista, con eso ya nosotros podríamos arrancar. En cuanto al reformating de los CVEs, Yo sé que ustedes nos pasaron los templates. Ahí es solo que nos confirmen si esos son los templates definitivos. Vimos que pues, por ejemplo, uno es prácticamente un template en blanco, el otro pues tiene como el logo de Beats, y había otro que en cambio era como con una parte gráfica un poquito más extensa. Pero bueno, si son esos, efectivamente los que vamos a usar. Y por último, necesitaríamos también que creemos, o no sé si ya la tengan creada, la ruta en una carpeta de Google Drive, en donde vamos a ir poniendo los CVs transformados.
+
+5:31 - Unidentified Speaker
+No sé si tengan alguna pregunta.
+
+5:34 - YARITZA CORDERO
+Hola, buenos días.
+
+5:36 - Unidentified Speaker
+Adelante, Yaren.
+
+5:38 - YARITZA CORDERO
+Vale, pues de la parte de SharePoint, ya lo creé junto con Centeno. Y ya allí está todo lo que es relacionado a los PO balances. Me falta que subir el documento matriz, pero eso lo hacemos en un segundito. Entonces otorgarte el acceso a Santiago que voy a verificar con Centeno entonces cómo podríamos trabajar esa parte que imagino que bueno depende de la disponibilidad de Centeno pues puedo tenértelo bastante pronto. Respecto a los bio balance, sí me gustaría que pudiésemos ver quizás un poquito de detalle de la estructura de esos reportes para que pueda entender quizás un poco más más al micro como lo trabajamos para cuando se vaya a montar esta automatización, pues quizás vaya lo más alineada posible al proceso. Eso con el B.O. Balance y lo que es el contrato renewable, la parte del OCB, Jeremy, quien te está ya confirmando, entendería que, o sea, no hemos creado el SharePoint donde se van a almacenar, pero de igual forma, ¿verdad? Como creé el de, el de los contratos de Newark, pues en un momento puedo crear entonces el de almacenamiento y, ¿verdad? Y que el equipo tenga el acceso de igual forma a Santiago.
+
+7:23 - Unidentified Speaker
+Sí.
+
+7:24 - YARITZA CORDERO
+En cuanto a las aprobaciones, este, De eso mismo iba a preguntar.
+
+7:29 - Jeremy Rivera
+Tengo una duda con relación a la aprobación. Cuando mencionan aprobación final, ¿se refieren de las fechas o del documento final?
+
+7:40 - Santiago Ciurlo
+En realidad, digamos de. Del documento, o sea, mejor dicho, de la renovación de contrato que ejecutó el agente. Una vez cruce la información entre los Excel. Ok. Esa es la aprobación de la que estaría hablando.
+
+7:58 - YARITZA CORDERO
+Hablaban, hablaban de dos aprobaciones. Esa una que esa sería el equipo de contabilidad que allí vimos el correo electrónico que tenemos, que es como un share email que se llama payor. Arroba. Fitsber.com. Se lo había escrito en el correo electrónico que les contesté y ya La otra parte era Agustin, que era como que la aprobación de las fechas, eran exactamente estas aprobaciones, si no recuerdo mal. Sí, correcto.
+
+8:30 - Santiago Ciurlo
+O sea, entonces digamos de la aprobación del área contable, me dices el correo, es el que nos mandaste en el correo y el otro sería, digamos, Agustin, el correo de Agustin.
+
+8:44 - Unidentified Speaker
+Sí.
+
+8:44 - Unidentified Speaker
+Listo.
+
+8:45 - Santiago Ciurlo
+Perfecto.
+
+8:46 - Jeremy Rivera
+Por otro lado, en cuanto a los CVE, básicamente esos serían los templates que son los definitivos de los que se estaremos utilizando, que son los que Paola comparte.
+
+9:03 - Santiago Ciurlo
+Listo, perfecto. Yo tengo una duda con respecto, digamos, al contract renewal. Aquí hay algo que, pues, gustaría entender. Y es si el sistema una vez montado va a tener que hacerle seguimiento, digamos, a ciclos anteriores, no? Que ustedes tengan de facturación o si va a ser mejor a partir, digamos, de un punto en los contratos que vengan posteriores a haber montado el sistema.
+
+9:36 - YARITZA CORDERO
+Si lo vamos a trabajar posterior cosa a futura.
+
+9:42 - YARITZA CORDERO
+Ok, perfecto.
+
+9:43 - Santiago Ciurlo
+Listo. No, yo por ahora esas son las preguntas que, que tenía. Si entonces, pues me pueden compartir, pues eso SharePoint tanto para digamos el tema de, de el almacenamiento de los CVs, como también obviamente la parte contable con los, con los archivos para que vamos a acusar pues.
+
+10:06 - YARITZA CORDERO
+Vale, ya me llevo eso para tratar de trabajarlo hoy. Listo, perfecto. Sí, pues eso es lo que necesitamos.
+
+10:14 - Natalia at Insighty AI
+Yo creo que una vez tengamos todo esto, entonces igual vamos a ir adelantando, pero una vez tengamos todo esto, pues ya, ya estructuramos todo. La idea es aproximadamente en la semana dos hacerle eso. Un demo de cómo vamos con el proceso para que ustedes nos den un poco de feedback y retroalimentación. Igual todo lo manejamos por el chat de WhatsApp como lo estábamos manejando antes, así mismo con Centeno. Entiendo pues que Yaritza estará más a cargo de estos proyectos en este caso. Pues para comunicarnos contigo, Yaritza, para cualquier tema.
+
+10:51 - YARITZA CORDERO
+Pues esos eran los temas. En el de los contratos, pues mayormente sí. Obviamente no vaya a que ella es quien principalmente maneja ahora mismo esta tarea manualmente, pero involucra a mi departamento porque somos nosotros quienes actualizamos los reportes a diario.
+
+11:14 - Natalia at Insighty AI
+Listo, perfecto.
+
+11:16 - Natalia at Insighty AI
+Bueno, no, pues realmente sería eso. Santi, Churlo, yo no sé si necesitamos algo más.
+
+11:26 - Santiago Ciurlo
+Lo único sería, no habíamos, en el correo ustedes mencionaban que igual los CVs que se vayan a modificar el formato se van a pasar manualmente al stage de Jazzy Char, ¿es correcto?
+
+11:49 - Unidentified Speaker
+Sí.
+
+11:50 - Unidentified Speaker
+¿Aló, aló?
+
+11:51 - Paola Guirado
+Ahora sí, ahora sí. Perfecto. Bueno, Tía, que nos habías saludado. Sí, en efecto, en cuanto al formato de los resumen, nosotros manualmente lo pasaríamos al stage, dependiendo del formato que queramos que el resumen sea pasado. Ok.
+
+12:10 - Santiago Ciurlo
+Ese formato ahorita en este momento se llama resumen y la pregunta sería si de pronto ustedes tienen ya ahí algunos CVs, digamos, como prueba para que igual nosotros también empezamos a hacer el cambio.
+
+12:25 - Paola Guirado
+Es decir, resumen ya pasados a estos formatos. Que quieran pasar.
+
+12:30 - Paola Guirado
+Ah, que quieran pasar.
+
+12:32 - Santiago Ciurlo
+De pronto, sí, sí.
+
+12:34 - Paola Guirado
+Eso lo podemos identificar, claro, y enviarle uno para cada formato. Claro que sí. Sí, exacto.
+
+12:41 - Santiago Ciurlo
+Como para tenerlo ahí directamente en ese stage. Y que pues ya tengamos algunos palos de prueba. Perfecto.
+
+12:48 - Paola Guirado
+Entonces le pregunto, lo vamos a hacer dentro de los workflows que ya tenemos creado?
+
+12:55 - Santiago Ciurlo
+No, no. Hacemos un workflow nuevo por N8n.
+
+12:59 - Paola Guirado
+Ok. Hacemos un workflow nuevo que crea, entonces crearíamos un posting en JavaScript, que sea estrictamente para los resumes. Exacto. Sí, tal cual.
+
+13:09 - Santiago Ciurlo
+Digamos que la lógica es parecida a lo que hicimos con el AI Screening. La idea sería que en ese stage de Ya se ha dicho nosotros, pues ponemos un, digamos un agente que se va a encargar de relevar si hay un CV nuevo en el stage y una vez detecte ese CV, pues lo va a cambiar dependiendo obviamente del, de la configuración que ustedes quieran. Si es tipo CV 1, 2, 3 o 4. Y una vez ustedes pues habiliten ese paso, el agente pues cambiaría el formato, y lo pondría entonces en esa carpeta compartida de SharePoint.
+
+13:51 - Paola Guirado
+Ok, perfecto. Pero ahí lo que quería confirmar es si eso se va, si se van a utilizar, por ejemplo, nosotros habíamos, estamos utilizando los 11 workflows que creo que se habían compartido, eran 10 o 11. Dentro de estos mismos workflows se crea una etapa nueva para pasar el resumen a CB, o sería en un posting nuevo, con un Workflow nuevo?
+
+14:16 - Santiago Ciurlo
+O sea, en este momento en que, en que digamos Workflow lo tiene.
+
+14:21 - Paola Guirado
+Porque sería entonces en este momento incluir esa etapa en todos los, incluir esta etapa de resume en todos los Workflows que ya están creados. Sí, correcto. Eso es lo que tendríamos que hacer.
+
+14:36 - Santiago Ciurlo
+Eso es lo que tenemos.
+
+14:38 - Paola Guirado
+Ah, perfecto.
+
+14:38 - Paola Guirado
+Pues está bien, pues lo trabajamos así.
+
+14:42 - Santiago Ciurlo
+Sí, o sea, si van a ser de pronto en los 10 o en los 12.
+
+14:50 - Paola Guirado
+No sé.
+
+14:51 - Santiago Ciurlo
+Ustedes decían en qué huecos que habilitarían ese nuevo stage.
+
+14:56 - Unidentified Speaker
+Ok, perfecto.
+
+14:57 - Unidentified Speaker
+Ok.
+
+14:58 - Unidentified Speaker
+Y me lo pago.
+
+15:00 - Natalia at Insighty AI
+Listo, perfecto.
+
+15:01 - Natalia at Insighty AI
+Entonces quedamos con esos pendientes de parte de ustedes en que quedamos con súper atentos a eso.
+
+15:10 - Natalia at Insighty AI
+Y no, listo, empezamos.
+
+15:12 - YARITZA CORDERO
+La parte de invalidar, ¿verdad? ¿Cómo? O mostrarle quizás cómo es que se ven los biogaláns, que eso lo haríamos luego.
+
+15:23 - Santiago Ciurlo
+Si quieren, podemos. Pues no estaría mal abrir, o sea, cómo vamos a hacer el proyecto en paralelo. Podríamos de pronto sacar una reunión contigo para muestres cómo lo haces ahorita en este momento. O sea, el cruce en Excel, entender la lógica para entender entonces cómo la vamos a programar.
+
+15:46 - Santiago Ciurlo
+Pero pues si quieres lo podemos hacer de pronto solo contigo, dado que eres encargado de ese proceso.
+
+15:53 - YARITZA CORDERO
+Vale, yo salgo de vacaciones este jueves y, o sea, jueves ya no estoy y regreso a oficina el martes.
+
+16:01 - Santiago Ciurlo
+Si quieres, o sea, yo si quieren, si quieres no sé qué tanto dispendioso de tiempo sea el proceso, lo podremos hacer ahorita mismo en esta llamada. Si los demás quieren salir y tienes un momento para que lo revisemos. O de pronto en el transcurso de mañana, si sería clave.
+
+16:22 - Unidentified Speaker
+¿Cómo perdón?
+
+16:23 - YARITZA CORDERO
+Que me puedo quedar ahora un momento.
+
+16:26 - Santiago Ciurlo
+Ah, bueno, listo.
+
+16:27 - Santiago Ciurlo
+Perfecto. De cuando sea de una vez lo revisamos.
+
+16:31 - Natalia at Insighty AI
+Súper, súper. Listo. Entonces, así, quedamos atentos a eso de parte de ustedes, aquí ya avanzamos con este proceso y ya damos comienzo el día de hoy.
+
+16:48 - Unidentified Speaker
+¿Listo?
+
+16:48 - Unidentified Speaker
+Perfecto, muchas gracias a ustedes.
+
+16:52 - Unidentified Speaker
+Muchas gracias a ustedes.
+
+16:54 - Unidentified Speaker
+Vale, está bien la marcada.
+
+16:59 - Santiago Ciurlo
+¿Cuándo quieres?
+
+17:01 - YARITZA CORDERO
+Creo que Natalia se fue, ¿no?
+
+17:08 - Santiago Ciurlo
+No sé si ella iba a estar. Espérame, le consulto. De pronto voy a decirle desconecto. Ya listo.
+
+17:30 - YARITZA CORDERO
+Ok, dame ahora si puedo. Y la pantalla. La están viendo.
+
+18:05 - Unidentified Speaker
+Sí.
+
+18:05 - Unidentified Speaker
+Ok.
+
+18:05 - YARITZA CORDERO
+Este es como que el site dentro del SharePoint que creamos, Operaciones, que fue la sugerencia de Santiago, y entonces allí hicimos upload de lo que es los B.O. Balance. Y entonces son todos, ay, Dios mío, me disculpan porque yo en Google Meet no soy muy diestra. No, no, no, no te preocupes.
+
+18:30 - Natalia at Insighty AI
+Yaritza, te interrumpo así rápidamente. Yo te con Santiago que le está haciendo este levantamiento de información, mientras que tú le muestras el proceso que le están cargando eso, pero igual quedó súper atenta por medio de WhatsApp o cualquier cosa, ¿vale?
+
+18:48 - YARITZA CORDERO
+Vale, gracias, Mati, cuídate. Hasta luego, Yaritza, Jeremy, Jessica, que estén muy bien. Hasta luego. Bien, hasta luego. De nada. Verdad, los biólogos que tenemos se trabajan por clientes. De, tenemos un Excel por cada cliente que les manejamos el P.O.
+
+19:10 - Unidentified Speaker
+Balance como tal.
+
+19:12 - YARITZA CORDERO
+Entonces, dentro de cada uno de estos Excel, déjame ver cómo lo puedo abrir acá. Voy a abrirlo en el desktop un momento para que se vea más fácil. ¿Quién quiere? Ahora sí lo están viendo. Vale, pues en cada uno de esos excerpt por cliente hay un tab con cada recurso. ¿Verdad? Esto es lo que viene siendo un P.O. Balance. Aquí tenemos el P.O. Aquí tenemos el balance de horas. Con este balance de horas es que Jessica calcula la fecha. Normalmente, ¿verdad? Dividimos el balance de horas entre 80, que es lo que usualmente un recurso trabaja, y eso nos da un factor, por ejemplo, 9.5. Pues nos dice que este balance nos da para cubrir 9.5 bisemanas. Entonces ahí Jessica va al calendario, cuenta 9.5 bisemanas y esa sería la fecha de extensión del contrato o de renovación.
+
+21:52 - Santiago Ciurlo
+O sea, es basado, digamos, en el, en el, en ese balance que ustedes determinan cuánto se va a alargar el contrato. Correcto.
+
+22:02 - YARITZA CORDERO
+Esto es un reporte, verdad, que todas las 10 semanas se actualiza.
+
+22:07 - Santiago Ciurlo
+Cuando tú dices 10 semanas es 2 semanas, o sea, 15 días.
+
+22:12 - YARITZA CORDERO
+10 días.
+
+22:13 - Unidentified Speaker
+Verdad.
+
+22:13 - YARITZA CORDERO
+En el proceso interno de FITS corre que es cada 10 días.
+
+22:19 - Santiago Ciurlo
+Cada 10 días. Perfecto.
+
+22:20 - YARITZA CORDERO
+Sí.
+
+22:21 - Santiago Ciurlo
+Y estos reportes, ¿Cómo los haces manual? ¿Los haces tú manualmente? Es manual, sí.
+
+22:27 - YARITZA CORDERO
+Porque esto llega, verdad, estas son las obras trabajadas de los recursos. Esto nosotros lo recibimos, verdad, o se recibe por correo electrónico o también se recibe por plataforma, verdad, dependiendo del cliente. Y con eso nosotros trabajamos el proceso de nómina. Pero estos reportes de igual forma se alimentan de las horas que trabajan los recursos. Es decir, nosotros recibimos, para que entiendan un poquito el concepto macro, por cada recurso se recibe un PO, una orden de compra. Y entonces nosotros llevamos esto precisamente para saber en qué punto se encuentra la orden de compra. En cuanto a balances disponibles, tanto para seguimiento de extensión con el cliente como extensiones a los recursos, a los contratos de los recursos. Ok, ok, entiendo.
+
+23:19 - Santiago Ciurlo
+O sea, pero primero me imagino negociando el cliente y con base en eso al recurso. Perdón? O sea, negocian primero cuál va a ser la extensión con el cliente y después con el recurso. Ah, sí, sí, sí.
+
+23:33 - YARITZA CORDERO
+Eso es otro, otro proceso.
+
+23:34 - Santiago Ciurlo
+Correcto. Ok, listo. Y aquí la idea es que los, digamos esos contratos renovados que salgan. ¿Son de ambos perfiles? O sea, tanto de clientes como también de los recursos.
+
+23:49 - YARITZA CORDERO
+No, aquí estamos hablando solamente de los recursos.
+
+23:53 - Santiago Ciurlo
+Solo recursos.
+
+23:54 - YARITZA CORDERO
+Ok, perfecto. Solo los recursos que van a venir del Excel maestro del pivot table de Jessica.
+
+24:02 - Santiago Ciurlo
+Perfecto. Listo. Y entonces básicamente tienes un Excel como este por cliente.
+
+24:11 - YARITZA CORDERO
+Correcto. Entonces cada cliente pues tiene su Excel y en cada Excel hay un tab con el nombre del recurso. Hay algunos casos, o sea aquí solamente hay una tablita porque es un recurso nuevo, pero por ejemplo, este recurso que ya lleva más tiempito, pues tiene varias tablas ¿verdad? Porque no borra un sino que se va quedando allí. Hay otros casos que el recurso puede tener más de una orden de compra, de compra, perdón, disponible utilizándola. Si tengo por aquí un ejemplo.
+
+24:55 - Santiago Ciurlo
+O sea, por tipo, porque el recurso trabaja para, para varios jobs.
+
+25:03 - YARITZA CORDERO
+para varios clientes en varios proyectos. Y a veces, o sea, para varios clientes dentro del mismo site, ¿verdad? Por ejemplo, Abbott tiene dos hiring managers distintos y este recurso le da apoyo a los dos. Entonces cada uno saca un PO aparte y puede haber casos, ¿verdad? Y lo hay. Que entonces el balance necesita ser computado de los PO disponibles. Toda la orden disponible.
+
+25:32 - Unidentified Speaker
+Ok.
+
+25:33 - Santiago Ciurlo
+Pues aquí lo único que estoy viendo es que el, el, el valor de donde ustedes lo toman para poder hacer el cálculo, la posición es variable.
+
+25:50 - Unidentified Speaker
+Sí.
+
+25:50 - Santiago Ciurlo
+Es el único tema que me preocupa. O sea, en realidad la casilla que nosotros deberíamos tomar es por ejemplo esa, ¿Cierto?
+
+26:03 - Unidentified Speaker
+Sí.
+
+26:04 - Santiago Ciurlo
+196 y ahí entonces hacer la fórmula sobre los 80 que tú mencionas, ¿Cierto?
+
+26:12 - YARITZA CORDERO
+Correcto, correcto. Pero sí, la casilla va a variar a medida que la tabla crezca también.
+
+26:21 - Santiago Ciurlo
+Sí. Bueno, eso nos toca revisar técnicamente como subsanamos. Probablemente la organización de las tablas tengamos que modificarla de manera que no quede por debajo de la variable.
+
+26:38 - YARITZA CORDERO
+Sí, por eso quería hablar que viera la composición como tal de los documentos. Y todos son igual a este?
+
+26:49 - Santiago Ciurlo
+Sí, básicamente todos son iguales.
+
+26:52 - YARITZA CORDERO
+Tienen la misma estructura.
+
+26:54 - Santiago Ciurlo
+Y tú, o sea, por ejemplo, mencionabas para poder aquí anotar, digamos, el tiempo de cada recurso. Esa información la sacas manualmente de correos y de dónde.
+
+27:11 - YARITZA CORDERO
+¿Cuál informas, cuál como tal tú?
+
+27:14 - Santiago Ciurlo
+O sea, por ejemplo, acá de un recurso. Estos son los históricos, que ya se pagaron, ¿Cierto? O de los, de los invoice que ya se cubrieron por recursos.
+
+27:30 - YARITZA CORDERO
+Estas tablas. Sí. Sí. O sea, esto es, si ves como que ya esta orden de compra, por ejemplo, está ya en cero. O sea, esto no hay que tomarlo en consideración. Actualmente, ¿Verdad? Tenemos utilizando esta orden de compra y esta que llegó nueva.
+
+27:49 - Santiago Ciurlo
+Ok. Y entonces acá. Estas, por ejemplo, supongamos que hay que hacer una renovación del contrato de esta nueva. Tú simplemente miras, digamos esa, esa, esa fila 282 y con base a ese histórico, entonces calculas para un nuevo, para un nuevo contrato?
+
+28:21 - YARITZA CORDERO
+Básicamente utilizamos acá, que es como que verdad, por ejemplo, está la 278, que es el balance que a la fecha quedaría, o sea, a la última fecha, básicamente de la nómina o de facturación queda este balance.
+
+28:41 - Santiago Ciurlo
+Claro, pero digamos ese balance lo logras construir lo menos a partir de cuatro filas, cierto, de datos. ¿Qué pasa cuando tienes como en la casilla de abajo solamente una entrada?
+
+28:56 - YARITZA CORDERO
+Aquí no hay, o sea, aquí no hay todavía consumo. Está disponible, por ejemplo, si fuéramos, si Jessica fuera a entrar a verificar la fecha de extensión de este candidato y ella lo que es sumar esta celda con esta celda. Y ahí. Y ahí son 1280.
+
+29:22 - Santiago Ciurlo
+Correcto. Ok, ya, ya entiendo. Bueno, ahí hay una lógica interesante. No se me ocurre ahorita, pero me tocó investigar. Vamos a ver. Sí, verdad.
+
+29:41 - YARITZA CORDERO
+Eso es como normalmente lo trabajamos actualmente. Sí, verdad.
+
+29:45 - Santiago Ciurlo
+O sea, siempre sobre la, siempre sobre la casilla anterior.
+
+29:49 - Santiago Ciurlo
+Sí, sí, sí.
+
+29:50 - Santiago Ciurlo
+Ok, ok. Listo, listo. Me queda más claro. No sé si hay alguna otra cosa que tenga que tener en cuenta.
+
+29:59 - YARITZA CORDERO
+No, ahí yo creo que te expliqué, verdad, ambas cosas.
+
+30:04 - Santiago Ciurlo
+Y todos los otros archivos en Excel que tienes los clientes son iguales.
+
+30:10 - YARITZA CORDERO
+Sí, básicamente es lo mismo, pero pues por el cliente.
+
+30:15 - Santiago Ciurlo
+Listo, me queda más claro. Yo creo que el reto es lo que te comentaba, que pues acá no hay una fila o una columna fija de donde podamos tomar el dato. Eso, eso, por ejemplo, en términos de automatización sería lo complicado, O sea, ¿podríamos, por ejemplo, configurar de otra manera las casillas?
+
+30:43 - Unidentified Speaker
+¿Me estás preguntando? Sí, sí, sí, sí.
+
+30:46 - Santiago Ciurlo
+O sea, no sé si de pronto haya algún requisito o alguna limitante de que modifiquemos la manera en cómo estás haciendo las tablas.
+
+31:00 - YARITZA CORDERO
+No, o sea, yo estoy abierta a verla. Las opciones que funcionen dentro de lograr esta automatización. Pero si quería que lo vieras, porque estos Excel cambian, aunque esta entrada de líneas es mayormente bisemanal, pues a diario nos llegan órdenes de compra que vamos añadiendo acá. O sea, que son Excel que están vivos a diario en cambios.
+
+31:32 - Santiago Ciurlo
+Sí, sí, sí, de acuerdo, de acuerdo. No, esa sería la lógica que nos tocaría. O sea, ustedes igual manualmente van a estar cargando información en esas tablas. Sí. Ahí el reto es lo que te mencionaba, que se mueva de posición la casilla desde donde tenemos que leer la variable.
+
+31:54 - YARITZA CORDERO
+Sí.
+
+31:55 - Santiago Ciurlo
+Pero déjame revisar cómo lo podemos hacer y yo les voy contando.
+
+32:01 - YARITZA CORDERO
+Vale, pues nada, en el Interim, verdad, voy a tratar de darte acceso lo más pronto posible, Concenteno, y te lo escribo allá en el chat.
+
+32:12 - Santiago Ciurlo
+Eso, listo. Sí, yo también tengo en el chat que tenemos Concenteno. Dale, te escribo.
+
+32:18 - YARITZA CORDERO
+Si tienes los accesos ahí, yo ya podría entrar a revisar eso. Ok. Listo. Bueno, Jessica, tienes ¿Alguna? ¿Algo más? No. No, está bien. Pues, pues nada, entonces nos mantenemos en comunicación, Santiago, gracias. Dale, a ustedes, gracias.
+
+32:36 - Santiago Ciurlo
+Que tengamos un buen día. Gracias, buen día.
+
+32:40 - YARITZA CORDERO
+Bien, papi.
