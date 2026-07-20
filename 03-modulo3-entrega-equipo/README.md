@@ -26,4 +26,6 @@ Entrega final del CV al cliente de FITS — sigue siendo tarea del reclutador; e
 
 ~~Confirmación de que el sitio/Document Library de SharePoint de este proyecto existe, y acceso vía Azure AD App Registration~~ — resuelto y verificado 20 Jul 2026 (lectura/escritura OK vía Microsoft Graph API, ver `../Decisiones.md`).
 
-Falta cargar la credencial nativa Microsoft OAuth2/SharePoint en N8N (`fits.app.n8n.cloud`) y construir el workflow de entrega.
+~~Falta cargar la credencial nativa Microsoft OAuth2/SharePoint en N8N~~ — resuelto 20 Jul 2026: credencial `SharePoint - CV Reformatting (Graph API)` creada y probada en `fits.app.n8n.cloud`, responde correctamente vía HTTP Request node.
+
+Falta construir el workflow completo de entrega.

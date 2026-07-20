@@ -87,7 +87,9 @@
 - Sitio `Operaciones-RecursosHumanos` resuelto correctamente (Site ID guardado en `.env`)
 - Document Library "Documents" (Shared Documents) accesible, con la carpeta `Resumes` visible
 - Permisos de **lectura y escritura** confirmados (se subió y luego se borró un archivo de prueba)
-**Impacto:** Se resuelve el pendiente de permisos del App Registration — el nivel de acceso otorgado (sea `Sites.Selected` o `Sites.ReadWrite.All`) es suficiente para el Módulo 3. Falta cargar esta misma credencial como tipo Microsoft OAuth2/SharePoint nativo dentro de N8N (`fits.app.n8n.cloud`) cuando arranque la construcción del workflow — no hay acceso MCP directo a esa instancia desde esta sesión.
+**Impacto:** Se resuelve el pendiente de permisos del App Registration — el nivel de acceso otorgado (sea `Sites.Selected` o `Sites.ReadWrite.All`) es suficiente para el Módulo 3.
+
+**Actualización 20 Jul 2026:** Credencial `SharePoint - CV Reformatting (Graph API)` creada en N8N (tipo genérico OAuth2 API, Client Credentials, scope `https://graph.microsoft.com/.default`) y probada con un nodo HTTP Request — responde correctamente con los datos del sitio, Site ID idéntico al verificado por curl. Conexión SharePoint↔N8N lista para construir el workflow de entrega (Módulo 3).
 
 ### 20 Jul 2026 — Credencial Anthropic: se reutiliza la de Fase 1
 **Decisión:** Se reutiliza la credencial "Anthropic - FITS" (`P3oMjAzU63IfOAff`, ya provisionada en `../../fits-llc/`) en vez de crear una nueva para este proyecto.
@@ -102,7 +104,7 @@
 - [x] Registrar Tenant ID / Client ID del Azure AD App Registration para este sitio — recibidos, en `.env` local
 - [x] Client Secret del App Registration — recibido, en `.env` local
 - [x] Confirmar permisos otorgados — resuelto: lectura y escritura verificadas vía Graph API
-- [ ] Cargar credencial nativa Microsoft OAuth2/SharePoint en N8N (`fits.app.n8n.cloud`)
+- [x] Cargar y probar credencial de SharePoint en N8N — resuelto: `SharePoint - CV Reformatting (Graph API)` funcionando
 - [x] Reutilizar la credencial Anthropic de Fase 1 (`P3oMjAzU63IfOAff` en `../../fits-llc/`) o provisionar una nueva — resuelto: se reutiliza la de Fase 1
 - [ ] Set de 15–20 CVs reales para las pruebas de aceptación del Módulo 2 (más allá del CV de prueba ya recibido, ver `02-modulo2-agente-transformacion/cvs-prueba/`)
 - [ ] Paso de revisión humana antes del envío grupal — confirmar con Paola/Jeremy si se quiere o si la entrega automática es aceptable
