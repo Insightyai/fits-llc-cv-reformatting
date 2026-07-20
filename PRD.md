@@ -25,22 +25,34 @@ Automatizar la transformación del CV original de un candidato al formato de pre
 
 ## 3. Módulos
 
-### Módulo 1 — Stage "Resumes" en los Workflows de JazzHR
+### Módulo 1 — Etapas "Convert Resume" en los Workflows de JazzHR
 
-**Corrección de alcance (kickoff 7 jul 2026):** no es un job posting nuevo aislado. Es agregar un stage "Resumes" dentro de cada uno de los **10-12 workflows de JazzHR que FITS ya tiene** (los mismos de Fase 1) — confirmado explícitamente por Paola. Ver `Decisiones.md`.
+**Corrección de alcance (kickoff 7 jul 2026):** no es un job posting nuevo aislado. Es agregar etapa(s) nuevas dentro de cada uno de los **workflows de JazzHR que FITS ya tiene** (los mismos de Fase 1) — confirmado explícitamente por Paola. Mapeo exacto confirmado por correo el mismo día (ver `Decisiones.md`). Ver también `01-modulo1-job-posting/README.md`.
 
 **Alcance:**
-- Agregar el stage "Resumes" a los workflows/pipelines existentes de JazzHR, con 4 sub-formatos según el destino:
-  - **New Format** — con logo FITS, para SOW requisitions
-  - **Non Template** — sin logo (Medtronic, Integra FG, Haleon FG, Beeline, Amgen FG, Abbott FG)
-  - **BD Format** — Becton Dickinson
-  - **Worksense Format** — Johnson & Johnson
+- Agregar la(s) etapa(s) `Convert Resume - [Formato]` a 10 workflows/pipelines existentes de JazzHR, solo con los formatos que cada uno necesita (no los 4 en todos):
+
+| Workflow | Etapa(s) agregada(s) |
+|---|---|
+| Abbott FG - Workflow 2024 | Convert Resume - Non Template |
+| Amgen FG - Workflow 2024 | Convert Resume - Non Template |
+| Becton Dickinson - Workflow 2024 | Convert Resume - BD Format |
+| Beeline - Workflow 2024 | Convert Resume - Non Template |
+| Haleon FG - Workflow 2026 | Non Template · New Format |
+| JazzHR Standard Workflow | Non Template · New Format |
+| JNJ - Workflow 2024 | Convert Resume - Non Template · Convert Resume - New Format (⚠️ ver nota Worksense abajo) |
+| Integra FG - Workflow 2024 | Convert Resume - Non Template |
+| Medtronic - Workflow 2024 | Convert Resume - Non Template |
+| SOW Workflow 2024 | Convert Resume - New Format |
+
 - Acceso habilitado para todos los reclutadores
-- El reclutador mueve manualmente el CV al sub-formato deseado — el sistema hace el resto
+- El reclutador mueve manualmente el CV a la etapa del formato deseado — el sistema hace el resto
 
-**Criterio de aceptación:** el stage "Resumes" está activo y correctamente configurado en los workflows de JazzHR, y todos los reclutadores tienen acceso confirmado por el representante designado de FITS.
+**Hipótesis de trabajo (a confirmar con Paola):** JNJ - Workflow 2024 mantiene sus dos etapas tal como las envió Paola (Non Template y New Format) — no se toca JazzHR. La diferencia está en el **template que aplica el agente**: cuando el candidato está en JNJ - Workflow 2024 y llega a la etapa "Convert Resume - New Format", el agente debe usar el template `Worksense Template.docx` (J&J) en vez del `New Format Resume Template.docx` genérico. Es decir, la selección de template depende del par (workflow, etapa), no solo del nombre de la etapa. Ver detalle en `02-modulo2-agente-transformacion/README.md`.
 
-**No incluido:** modificación de otros stages en los workflows existentes — solo se agrega "Resumes", sin tocar la lógica de AI Screening de Fase 1 que ya está en producción sobre esos mismos workflows.
+**Criterio de aceptación:** las etapas están activas y correctamente configuradas en los 10 workflows de JazzHR, y todos los reclutadores tienen acceso confirmado por el representante designado de FITS.
+
+**No incluido:** modificación de otras etapas en los workflows existentes — solo se agregan las etapas `Convert Resume - [Formato]`, sin tocar la lógica de AI Screening de Fase 1 que ya está en producción sobre esos mismos workflows.
 
 ---
 
@@ -99,13 +111,13 @@ Automatizar la transformación del CV original de un candidato al formato de pre
 
 | Dependencia | Estado | Responsable |
 |---|---|---|
-| Sitio/Document Library de SharePoint propio del proyecto | ⏳ Solicitado, sin confirmación de creación | Centeno |
-| Azure AD App Registration para este sitio (propio o grant adicional sobre el de Contract Renewal) | ⏳ Pendiente de definir | Centeno |
-| Los 4 templates definitivos en .docx con branding completo | ✅ Completado — confirmados por Jeremy en el kickoff, son los que Paola ya compartió | Jeremy / Paola |
+| Sitio/Document Library de SharePoint propio del proyecto | ✅ Confirmado — `Operaciones-RecursosHumanos`, carpeta `Resumes` (ver `Decisiones.md`) | Centeno |
+| Azure AD App Registration para este sitio | ✅ Completo (`.env` local) — falta confirmar permisos otorgados | Centeno |
+| Los 4 templates definitivos en .docx con branding completo | ✅ Completado — recibidos y cargados en `02-modulo2-agente-transformacion/templates/` | Jeremy / Paola |
 | Un CV de ejemplo por formato (referencia inicial) | ⏳ Pendiente — Paola se comprometió a enviarlos | Paola |
 | Set de 15–20 CVs reales para pruebas de aceptación | ⏳ Pendiente | Paola / Jeremy |
 | Acceso a JazzHR para agregar el stage "Resumes" a los workflows existentes | A confirmar | Jeremy |
-| Confirmación Google Drive vs. SharePoint como destino final de entrega | ⏳ Ambiguo tras el kickoff, resolver con el equipo | Insighty (interno) |
+| Confirmación Google Drive vs. SharePoint como destino final de entrega | ✅ Resuelto — SharePoint, sitio `Operaciones-RecursosHumanos` | Insighty (interno) |
 
 ---
 
@@ -124,7 +136,9 @@ El reloj no ha arrancado formalmente — corre desde que Insighty reciba los 4 t
 
 ## 7. Decisiones Pendientes
 
-- [ ] Sitio de SharePoint propio vs. compartido con Contract Renewal
+- [x] Sitio de SharePoint propio vs. compartido con Contract Renewal — resuelto: sitio propio `Operaciones-RecursosHumanos`
+- [x] Registrar Tenant ID / Client ID / Client Secret del Azure AD App Registration — recibidos, en `.env` local
+- [ ] Confirmar permisos otorgados sobre el sitio (`Sites.Selected` vs. `Sites.ReadWrite.All`)
 - [ ] Reutilizar credencial Anthropic de Fase 1 o provisionar una nueva
 - [ ] Set de CVs reales para pruebas de aceptación
 - [ ] Paso de revisión humana antes del envío grupal — sí/no

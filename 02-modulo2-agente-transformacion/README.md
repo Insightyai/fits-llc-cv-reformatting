@@ -13,6 +13,15 @@
   - Reescritura de summaries pobres o incompletos
 - Generación programática del .docx final con los 4 templates (logo, estilos de fuente, orden de secciones por formato — incluyendo pueblo de residencia en Summary of Skills para BD Format)
 
+## Selección de template — depende de (workflow, etapa), no solo de la etapa
+
+La etapa "Convert Resume - New Format" existe en varios workflows (SOW Workflow 2024, JazzHR Standard Workflow, Haleon FG, JNJ - Workflow 2024), pero no siempre debe generar el mismo template:
+
+- En SOW / JazzHR Standard / Haleon FG → template `New Format Resume Template.docx`
+- En **JNJ - Workflow 2024** → template `Worksense Template.docx` (formato propio de Johnson & Johnson)
+
+El Code node que selecciona el template debe recibir el nombre del workflow además del nombre de la etapa. **Hipótesis a confirmar con Paola** (ver `../Decisiones.md`) — no verificada aún con FITS.
+
 ## Criterio de Aceptación
 
 - Procesa un CV de prueba en menos de 3 minutos desde el trigger hasta el .docx final
@@ -32,4 +41,4 @@ Templates adicionales a los 4 definidos · evaluación de idoneidad del candidat
 
 1. Los 4 templates .docx definitivos con branding completo
 2. Set de 15–20 CVs reales acordado con FITS
-3. Definir si se reutiliza la credencial Anthropic de Fase 1 o se provisiona una nueva
+3. ~~Definir si se reutiliza la credencial Anthropic de Fase 1 o se provisiona una nueva~~ — resuelto: se reutiliza `P3oMjAzU63IfOAff`

@@ -24,4 +24,6 @@ Entrega final del CV al cliente de FITS — sigue siendo tarea del reclutador; e
 
 ## Pendientes para arrancar
 
-Confirmación de que el sitio/Document Library de SharePoint de este proyecto existe, y acceso vía Azure AD App Registration.
+~~Confirmación de que el sitio/Document Library de SharePoint de este proyecto existe, y acceso vía Azure AD App Registration~~ — resuelto y verificado 20 Jul 2026 (lectura/escritura OK vía Microsoft Graph API, ver `../Decisiones.md`).
+
+Falta cargar la credencial nativa Microsoft OAuth2/SharePoint en N8N (`fits.app.n8n.cloud`) y construir el workflow de entrega.
