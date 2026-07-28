@@ -13,14 +13,9 @@
   - Reescritura de summaries pobres o incompletos
 - Generación programática del .docx final con los 4 templates (logo, estilos de fuente, orden de secciones por formato — incluyendo pueblo de residencia en Summary of Skills para BD Format)
 
-## Selección de template — depende de (workflow, etapa), no solo de la etapa
+## Selección de template — depende solo de la etapa
 
-La etapa "Convert Resume - New Format" existe en varios workflows (SOW Workflow 2024, JazzHR Standard Workflow, Haleon FG, JNJ - Workflow 2024), pero no siempre debe generar el mismo template:
-
-- En SOW / JazzHR Standard / Haleon FG → template `New Format Resume Template.docx`
-- En **JNJ - Workflow 2024** → template `Worksense Template.docx` (formato propio de Johnson & Johnson)
-
-El Code node que selecciona el template debe recibir el nombre del workflow además del nombre de la etapa. **Hipótesis a confirmar con Paola** (ver `../Decisiones.md`) — no verificada aún con FITS.
+Confirmado por Paola (correo del 21 jul 2026): el formato Worksense queda descartado, no se integra en JazzHR. La etapa "Convert Resume - New Format" siempre aplica el template genérico `New Format Resume Template.docx`, sin importar el workflow — el Code node de selección de template solo necesita el nombre de la etapa. El template `Worksense Template.docx` recibido junto con los otros 3 queda sin uso por ahora (ver `../Decisiones.md`).
 
 ## Criterio de Aceptación
 

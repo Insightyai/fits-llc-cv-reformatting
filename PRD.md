@@ -40,7 +40,7 @@ Automatizar la transformación del CV original de un candidato al formato de pre
 | Beeline - Workflow 2024 | Convert Resume - Non Template |
 | Haleon FG - Workflow 2026 | Non Template · New Format |
 | JazzHR Standard Workflow | Non Template · New Format |
-| JNJ - Workflow 2024 | Convert Resume - Non Template · Convert Resume - New Format (⚠️ ver nota Worksense abajo) |
+| JNJ - Workflow 2024 | Convert Resume - Non Template · Convert Resume - New Format |
 | Integra FG - Workflow 2024 | Convert Resume - Non Template |
 | Medtronic - Workflow 2024 | Convert Resume - Non Template |
 | SOW Workflow 2024 | Convert Resume - New Format |
@@ -48,7 +48,7 @@ Automatizar la transformación del CV original de un candidato al formato de pre
 - Acceso habilitado para todos los reclutadores
 - El reclutador mueve manualmente el CV a la etapa del formato deseado — el sistema hace el resto
 
-**Hipótesis de trabajo (a confirmar con Paola):** JNJ - Workflow 2024 mantiene sus dos etapas tal como las envió Paola (Non Template y New Format) — no se toca JazzHR. La diferencia está en el **template que aplica el agente**: cuando el candidato está en JNJ - Workflow 2024 y llega a la etapa "Convert Resume - New Format", el agente debe usar el template `Worksense Template.docx` (J&J) en vez del `New Format Resume Template.docx` genérico. Es decir, la selección de template depende del par (workflow, etapa), no solo del nombre de la etapa. Ver detalle en `02-modulo2-agente-transformacion/README.md`.
+**Worksense Format descartado (confirmado por Paola, 21 jul 2026):** FITS decidió no integrar el formato Worksense en JazzHR — no es de uso regular en sus operaciones. JNJ - Workflow 2024 mantiene únicamente sus dos etapas (Non Template y New Format), ambas con los templates genéricos estándar, sin lógica especial de selección por workflow. Ver `Decisiones.md`.
 
 **Criterio de aceptación:** las etapas están activas y correctamente configuradas en los 10 workflows de JazzHR, y todos los reclutadores tienen acceso confirmado por el representante designado de FITS.
 
@@ -116,7 +116,7 @@ Automatizar la transformación del CV original de un candidato al formato de pre
 | Los 4 templates definitivos en .docx con branding completo | ✅ Completado — recibidos y cargados en `02-modulo2-agente-transformacion/templates/` | Jeremy / Paola |
 | Un CV de ejemplo por formato (referencia inicial) | ⏳ Pendiente — Paola se comprometió a enviarlos | Paola |
 | Set de 15–20 CVs reales para pruebas de aceptación | ⏳ Pendiente | Paola / Jeremy |
-| Acceso a JazzHR para agregar el stage "Resumes" a los workflows existentes | A confirmar | Jeremy |
+| Acceso a JazzHR para agregar el stage "Resumes" a los workflows existentes | ✅ Completo — etapas ya creadas en los 10 workflows, verificado vía API el 28 jul 2026 | Jeremy |
 | Confirmación Google Drive vs. SharePoint como destino final de entrega | ✅ Resuelto — SharePoint, sitio `Operaciones-RecursosHumanos` | Insighty (interno) |
 
 ---

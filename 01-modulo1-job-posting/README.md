@@ -1,6 +1,6 @@
 # Módulo 1 — Etapas "Convert Resume" en los Workflows de JazzHR
 
-**Estado:** No iniciado
+**Estado:** Completo — las etapas ya existen y están correctas en los 10 workflows (verificado vía API el 28 jul 2026, corregida la etapa mal nombrada en JNJ). Lo que falta es automatizar la conversión, hoy manual (ver Módulo 2).
 **Corrección de alcance (kickoff 7 jul 2026):** ver nota abajo — no es un job posting nuevo aislado.
 **Mapeo confirmado (correo de Paola, 7 jul 2026):** ver tabla abajo. Ver `../Decisiones.md` para el registro completo.
 
@@ -25,9 +25,11 @@
 - El reclutador mueve manualmente el CV a la etapa del formato deseado — el sistema hace el resto
 - Acceso habilitado para todos los reclutadores
 
-## Nota — Worksense Format no es una etapa nueva en JazzHR
+## Nota — Worksense Format descartado
 
-JNJ - Workflow 2024 mantiene las mismas dos etapas que Paola envió (Non Template y New Format) — no requiere cambios en JazzHR. Worksense Format se resuelve del lado del agente de transformación: para este workflow específico, la etapa "Convert Resume - New Format" debe aplicar el template Worksense en vez del template genérico de New Format. Ver `../02-modulo2-agente-transformacion/README.md` y `../Decisiones.md`. Hipótesis a confirmar con Paola.
+Confirmado por Paola (correo del 21 jul 2026): FITS decidió no integrar el formato Worksense en JazzHR, no es de uso regular en sus operaciones. JNJ - Workflow 2024 mantiene las mismas dos etapas (Non Template y New Format), ambas con templates genéricos estándar — sin lógica especial de selección por workflow.
+
+**Corrección aplicada (28 jul 2026):** al verificar los 10 workflows vía API, se encontró que JNJ - Workflow 2024 tenía por error una etapa `Convert Resume - Worksense` en vez de `Convert Resume - Non Template` (probablemente creada antes de la respuesta de Paola). Sin riesgo de candidatos activos en esa etapa (proyecto aún sin automatizar), se renombró directamente en JazzHR. Verificado por API que JNJ queda con Non Template + New Format. Ver `../Decisiones.md`.
 
 ## Nota sobre el cambio de alcance
 
@@ -45,5 +47,4 @@ Modificación de otras etapas en los workflows existentes — solo se agregan la
 
 ## Pendientes para arrancar
 
-1. Confirmar con Paola que para JNJ - Workflow 2024, la etapa "Convert Resume - New Format" debe generar el template Worksense (J&J) en vez del template genérico de New Format
-2. Acceso a JazzHR para configurar las nuevas etapas (confirmar con Jeremy)
+Ninguno — módulo completo.
