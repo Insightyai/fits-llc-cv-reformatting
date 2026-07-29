@@ -1,0 +1,67 @@
+{
+  "full_name": "Shirley M. Mercado",
+  "town": null,
+  "years_experience": "4+",
+  "summary": "Environmental Engineer with a BS in Environmental Engineering and hands-on experience across the food and beverage manufacturing and medical device industries. Track record of ensuring operational compliance, strengthening environmental sustainability programs, and upholding regulatory requirements in highly controlled industrial settings.",
+  "skills": [
+    "Spanish and English",
+    "Environmental Compliance",
+    "Team Management & Training",
+    "Stakeholder Engagement & Communication",
+    "Leadership",
+    "Process Optimization & Continuous Improvement"
+  ],
+  "experience": [
+    {
+      "company": "Caribbean Refrescos, Inc",
+      "title": "Environmental Specialist",
+      "location": "Cidra, PR",
+      "period": "May 2024 - Present",
+      "bullets": [
+        "Ensured compliance with environmental regulations (local, federal, company) through timely submission of permits and reports.",
+        "Managed sampling, waste handling, and environmental documentation for water, air, and hazardous materials.",
+        "Supported successful ISO 14001 and KORE audits and drove continuous improvement in environmental programs.",
+        "Optimized waste management processes, reducing costs and risks.",
+        "Provided technical training to staff, strengthening safety and sustainability culture."
+      ]
+    },
+    {
+      "company": "Baxter International Inc.",
+      "title": "Environmental Engineer",
+      "location": "Aibonito, PR",
+      "period": "April 2022 - May 2024",
+      "bullets": [
+        "Led coordination, management, education, planning, and monitoring of the facility's environmental program.",
+        "Developed and updated environmental procedures, reports, and plans.",
+        "Managed and ensured proper disposal of non-hazardous, regulated, and special waste, including manifesting, transportation, and record keeping.",
+        "Managed programs for the identification of waste minimization and pollution prevention opportunities to achieve facility environmental program objectives and goals."
+      ]
+    }
+  ],
+  "education": [
+    {
+      "institution": "Polytechnic University of Puerto Rico",
+      "degree": "BS Environmental Engineering",
+      "period": "June 2019"
+    }
+  ],
+  "certifications": [
+    "CPR/AED First Aid",
+    "Water and Wastewater Treatment Operator IV",
+    "OSHA 30",
+    "Hazwoper 40",
+    "ISO 14001 Internal Auditor",
+    "Confined Space and Vertical Rescue",
+    "Fire Brigade 40hr & DOT Hazmat Specialist"
+  ],
+  "languages": [],
+  "_meta": {
+    "source_language": "en",
+    "translated": false,
+    "prompt_version": "fixture-manual-v0",
+    "warnings": [
+      "years_experience calculado de forma conservadora (abr 2022 a jul 2026, roles consecutivos en el mismo campo) -- criterio de calculo pendiente de confirmar con FITS, ver conocimiento/reglas-por-formato.md",
+      "town no aparece en el CV original (solo ciudades de los empleos, no residencia declarada) -- no inventar"
+    ]
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "full_name": "José Ramón Martínez Rodríguez",
+  "town": null,
+  "years_experience": null,
+  "summary": "Quality Assurance Engineer with cross-industry experience in R&D and manufacturing environments (\"clean room\" & GMP settings) for pharmaceutical clients such as Johnson & Johnson. Reduced batch release cycle time from >72h to <24h while maintaining full regulatory compliance.",
+  "skills": [
+    "R&D",
+    "GMP & GLP compliance",
+    "\"Six Sigma\" Black Belt",
+    "Root cause analysis (5 Whys & Ishikawa)"
+  ],
+  "experience": [
+    {
+      "company": "Johnson & Johnson — Medical Devices & Diagnostics",
+      "title": "Sr. QA Engineer",
+      "location": null,
+      "period": "Jan 2020 - Present",
+      "bullets": [
+        "Reduced non-conformance rate from >8% to <2% within 12 months.",
+        "Led the \"Right First Time\" initiative across R&D and manufacturing teams.",
+        "Partnered with cross-functional teams on CAPA & root-cause investigations."
+      ]
+    }
+  ],
+  "education": [
+    {
+      "institution": "Universidad de Puerto Rico — Recinto de Río Piedras",
+      "degree": "B.S. en Ingeniería Química",
+      "period": "2015 - 2019"
+    }
+  ],
+  "certifications": [
+    "Six Sigma \"Black Belt\"",
+    "ISO 13485 Lead Auditor",
+    "OSHA 30 & HAZWOPER 40"
+  ],
+  "languages": [],
+  "_meta": {
+    "source_language": "es",
+    "translated": true,
+    "prompt_version": "fixture-manual-v0",
+    "warnings": [
+      "town no aparece en el CV original -- no inventar",
+      "years_experience no pudo determinarse con confianza a partir de las fechas del CV"
+    ]
+  }
+}

@@ -29,3 +29,5 @@ Entrega final del CV al cliente de FITS — sigue siendo tarea del reclutador; e
 ~~Falta cargar la credencial nativa Microsoft OAuth2/SharePoint en N8N~~ — resuelto 20 Jul 2026: credencial `SharePoint - CV Reformatting (Graph API)` creada y probada en `fits.app.n8n.cloud`, responde correctamente vía HTTP Request node.
 
 Falta construir el workflow completo de entrega.
+
+Diseño de columnas del log de Google Sheets: ver `log-sheets-diseno.md`. Falta crear el spreadsheet real (pendiente de tu confirmación, ver ese archivo).

@@ -1,0 +1,91 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "cv-schema.json",
+  "title": "CV Reformatting - Esquema Canonico de Salida del Agente",
+  "description": "JSON que produce el agente de transformacion (Claude) a partir del CV original. Es agnostico de formato: el microservicio de render decide, segun el template, que campos usar y en que orden. Ver conocimiento/anatomia-templates.md y templates/MAPEO-PLACEHOLDERS.md.",
+  "type": "object",
+  "required": ["full_name", "summary", "skills", "experience", "education", "_meta"],
+  "additionalProperties": false,
+  "properties": {
+    "full_name": {
+      "type": "string",
+      "description": "Nombre completo del candidato, formato normalizado (Nombre Apellido)."
+    },
+    "town": {
+      "type": ["string", "null"],
+      "description": "Pueblo/ciudad de residencia. Se extrae siempre que el CV lo indique; solo BD Format lo renderiza (dentro de Summary of Skills). null si no aparece en el CV original -- no inventar."
+    },
+    "years_experience": {
+      "type": ["string", "null"],
+      "description": "Anios totales de experiencia profesional, como string ya formateado para el header de New Format/Non Template (ej. '8+'). Calculado por el agente a partir de las fechas de experience[]; null si no se puede determinar con confianza. NOTA: no es una de las 4 reglas de contenido del PRD -- lo exige el layout del template, hay que confirmar el criterio de calculo con FITS (ver Decisiones.md)."
+    },
+    "summary": {
+      "type": "string",
+      "description": "Summary profesional en tercera persona, en ingles. Resultado de las reglas 1-3 del PRD (traduccion, tercera persona, Objectives->Summary, reescritura de summaries pobres). Es el campo evaluado por aprobacion humana (>=90%)."
+    },
+    "skills": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Lista de habilidades/competencias, tal como aparecen o normalizadas minimamente. No traducir terminologia tecnica/certificaciones a menos que el original ya este en otro idioma."
+    },
+    "experience": {
+      "type": "array",
+      "description": "Historial laboral, orden cronologico inverso (mas reciente primero) salvo que el original indique otro orden explicito.",
+      "items": {
+        "type": "object",
+        "required": ["company", "title", "period", "bullets"],
+        "additionalProperties": false,
+        "properties": {
+          "company": {"type": "string"},
+          "title": {"type": "string"},
+          "location": {"type": ["string", "null"]},
+          "period": {"type": "string", "description": "Texto libre tal como conste (ej. 'Jan 2019 - Present')."},
+          "bullets": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Responsabilidades/logros, tercera persona, sin I-statements."
+          }
+        }
+      }
+    },
+    "education": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["institution", "degree"],
+        "additionalProperties": false,
+        "properties": {
+          "institution": {"type": "string"},
+          "degree": {"type": "string"},
+          "period": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "certifications": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Licencias, entrenamientos y certificaciones. Seccion separada de education en New Format/Non Template; fusionada con education en BD Format (a nivel de render, no de datos)."
+    },
+    "languages": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Opcional. Ningun template actual tiene seccion propia de idiomas; se deja disponible para uso futuro."
+    },
+    "_meta": {
+      "type": "object",
+      "required": ["source_language", "translated", "prompt_version", "warnings"],
+      "additionalProperties": false,
+      "description": "No se renderiza en el .docx. Uso interno: log de Sheets (Modulo 3) y auditoria.",
+      "properties": {
+        "source_language": {"type": "string", "description": "Idioma detectado del CV original (codigo ISO 639-1, ej. 'es', 'en')."},
+        "translated": {"type": "boolean"},
+        "prompt_version": {"type": "string", "description": "Version del prompt de transformacion usada (ver 02-modulo2-agente-transformacion/prompt/)."},
+        "warnings": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Ej. 'years_experience no pudo calcularse', 'CV sin seccion de educacion', 'experience con fechas ambiguas'. Alimenta la regla fail-closed (Fase 3.3 del plan)."
+        }
+      }
+    }
+  }
+}

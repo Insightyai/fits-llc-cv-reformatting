@@ -8,23 +8,19 @@ FITS LLC — outsourcing RRHH, industria farmacéutica, Puerto Rico. Contrato fi
 
 ## Estado del Proyecto
 
-**No iniciado.** Contrato firmado, kickoff realizado el 7 jul 2026.
+**Módulo 1 completo** (28 jul 2026): las etapas `Convert Resume - [Formato]` están activas y verificadas vía API en los 10 workflows de JazzHR.
 
-**Resuelto en el kickoff:** los 4 templates de branding ya están confirmados como definitivos (son los que Paola compartió). Paola además va a enviar un CV de ejemplo ya convertido por cada formato, como referencia inicial.
+**Módulo 2 — microservicio de render funcionando end-to-end en local (Fases 0–3 del plan revisado por Opus), sin tocar N8N todavía.** Arquitectura: microservicio Python (FastAPI + `docxtpl`) en `02-modulo2-agente-transformacion/microservicio-render/` genera el `.docx` final (N8N Cloud no puede hacerlo — bloquea `zlib`/`require()` en el Code node). Los 3 templates activos (New Format, Non Template, BD Format) están re-anotados según `templates/TAG-CONTRACT.md` y conectados al endpoint `POST /render` — probado con servidor real (auth `X-API-Key`, límites de tamaño, validación contra `cv-schema.json`, verificación de integridad del `.docx` de salida) contra 2 fixtures (`contrato-datos/fixtures/`). **Falta:** el agente de transformación AI (Claude) que lee el CV original y arma el JSON canónico — hoy se testea con JSONs armados a mano — y deploy a Railway. **Worksense Format descartado por FITS** (Paola, 21 jul 2026) y su archivo eliminado del repo. Detalle completo en `Decisiones.md`, `conocimiento/` y `seguimiento/bitacora.md`.
 
-**Bloqueante activo:** sitio de SharePoint con Document Library propio de este proyecto — ya solicitado a Centeno, sin confirmación de que exista ni de su Azure AD App Registration. Este proyecto va más atrasado que su hermano `contract-renewal` en ese frente (que ya tiene sitio "Operaciones" creado, con el PU Balance cargado).
-
-**Corrección de alcance importante (kickoff):** el Módulo 1 no es un job posting nuevo aislado — es agregar un stage "Resumes" a los 10-12 workflows de JazzHR que FITS ya tiene (los mismos de Fase 1), confirmado por Paola. Ver `PRD.md` y `01-modulo1-job-posting/README.md`.
-
-**Ambigüedad sin resolver:** Google Drive vs. SharePoint como destino final de entrega de los CVs — quedó mencionado de las dos formas en el kickoff. Ver `Decisiones.md`.
+**Bloqueantes de negocio pendientes (FITS):** set de 15–20 CVs reales para pruebas de aceptación, CVs de ejemplo ya convertidos por formato, correo grupal del equipo para Módulo 3, decisión sobre revisión humana antes del envío grupal.
 
 Yaritza es el punto de contacto principal de FITS para este proyecto y para `../contract-renewal/`.
 
 ## Módulos
 
-1. Job Posting Centralizado "Resumes" en JazzHR (4 stages: New Format, Non Template, BD Format, Worksense Format)
-2. Agente de Transformación AI (Anthropic/Claude vía N8N — 4 reglas de contenido + generación de .docx con branding)
-3. Entrega al Equipo (.docx + email grupal, almacenamiento en la nube)
+1. Etapas "Convert Resume" en 10 workflows de JazzHR — **completo**
+2. Agente de Transformación AI (Anthropic/Claude + microservicio de render — 4 reglas de contenido + generación de .docx con branding, 3 formatos activos)
+3. Entrega al Equipo (.docx + email grupal, almacenamiento en SharePoint)
 
 Detalle completo de alcance, criterios de aceptación y exclusiones en `PRD.md` y `00-contrato/Contrato.md`.
 
@@ -32,7 +28,8 @@ Detalle completo de alcance, criterios de aceptación y exclusiones en `PRD.md` 
 
 - **ATS:** JazzHR — misma cuenta integrada en Fase 1
 - **Orquestador:** N8N — instancia compartida con Fase 1 y con el proyecto hermano `contract-renewal`: `fits.app.n8n.cloud`
-- **Agente AI:** Anthropic/Claude — evaluar reutilizar la credencial "Anthropic - FITS" ya provisionada en Fase 1 (ver `../../fits-llc/CLAUDE.md`)
+- **Agente AI:** Anthropic/Claude — reutiliza la credencial "Anthropic - FITS" de Fase 1 (`P3oMjAzU63IfOAff`, ver `../../fits-llc/CLAUDE.md`)
+- **Render de .docx:** microservicio Python (FastAPI + `docxtpl`) — funcionando en local (`02-modulo2-agente-transformacion/microservicio-render/`), deploy a Railway pendiente
 - **Almacenamiento/entrega:** SharePoint Document Library propio (Microsoft Graph API, Azure AD app-only auth)
 
 ## Contactos FITS

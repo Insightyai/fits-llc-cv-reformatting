@@ -107,6 +107,22 @@
 **Razón:** Sin costo de setup adicional, misma cuenta ya operativa en producción.
 **Impacto:** El consumo de ambos proyectos queda bajo la misma credencial/facturación — no hay medición de costo independiente por proyecto.
 
+### 28 Jul 2026 — Plan de arquitectura para Módulo 2 y 3, y arranque de Fase 0
+**Contexto:** Al planificar la construcción de Módulo 2 (Agente de Transformación) y Módulo 3 (Entrega al Equipo), surgieron restricciones heredadas de Fase 1 que cambian el diseño: JazzHR no tiene webhooks (Fase 1 usa un poller con schedule), y N8N Cloud bloquea `zlib`/`require()` en el Code node con límite de 49 KB de salida — generar un `.docx` completo dentro de N8N es inviable.
+**Opciones consideradas (generación del .docx):** (a) microservicio Python (`docxtpl`) en Railway; (b) Google Docs API con conversión `.docx→Docs→.docx`; (c) Code node JS puro; (d) SaaS de render (Carbone, CloudConvert).
+**Decisión:** Se aprueba (a) — microservicio Python en Railway. Se descartan (c) por las restricciones técnicas de N8N Cloud, y (d) por la exclusión contractual de licencias de terceros y por enviar PII de candidatos a un procesador nuevo sin DPA.
+**Otras decisiones del plan:** los 4 templates se anotan con tags `docxtpl`/Jinja2 directamente en Word, a cargo de Santiago (no por script, para evitar el bug de run-splitting de Word); el workflow de N8N se construye como JSON versionado en el repo, con primer import manual por UI en `fits.app.n8n.cloud` antes de iterar por API REST; el log de Módulo 3 se crea como spreadsheet nuevo bajo la cuenta `fitsscreening@gmail.com` para reutilizar la credencial de Sheets ya existente.
+**Impacto:** Arranca la Fase 0 (reconocimiento, sin bloqueantes de FITS): anatomía de los 4 templates (`conocimiento/anatomia-templates.md`), esquema canónico de datos (`02-modulo2-agente-transformacion/contrato-datos/cv-schema.json`), mapeo de placeholders y guía de anotación (`02-modulo2-agente-transformacion/templates/`), mapa real de `step_id` de las 13 etapas "Convert Resume" vía API de JazzHR (`conocimiento/jazzhr-stepids-convert-resume.md`), reglas de contenido por formato (`conocimiento/reglas-por-formato.md`) y diseño del log de Sheets (`03-modulo3-entrega-equipo/log-sheets-diseno.md`, aún no creado).
+**Hallazgo relevante:** los nombres de etapa "Convert Resume" no son consistentes entre workflows (Haleon FG usa `Convert Resume - Non Template` en vez de `CONVERT RESUME-NON TEMPLATE`) — el Code node de selección de template debe matchear por `step_id`, no por nombre de texto.
+
+### 28 Jul 2026 — Anotación de templates por script en vez de manual, y limpieza de Worksense Template.docx
+**Contexto:** Se empezó a anotar `Non Template Resume.docx` a mano en Word siguiendo la guía (decisión del 28 jul anterior). Tomó mucho tiempo y generó problemas menores (Word "conservando mayúsculas" al reemplazar, texto que quedaba en varios runs de XML).
+**Decisión:** Se cambió a anotar los 3 templates activos (`New Format`, `Non Template`, `BD Format`) por script (`python-docx`), verificando cada uno con un render real de `docxtpl` contra datos de prueba antes de darlo por bueno. Los 3 quedaron validados en `02-modulo2-agente-transformacion/templates/anotados/`.
+**Razón:** Más rápido y con verificación automática inmediata (el render expone cualquier error de sintaxis Jinja al instante), en vez de depender de una inspección visual en Word.
+**Impacto:** La guía `INSTRUCCIONES-ANOTACION.md` para anotar manualmente en Word queda como referencia para templates futuros, no como el método usado para estos 3.
+
+**Aparte:** el archivo `Worksense Template.docx` se eliminó del repo el mismo día. La decisión de **descartar el formato Worksense** ya estaba tomada por Paola (FITS) el 21 jul 2026 (ver entrada de esa fecha más arriba) — lo de hoy fue solo limpieza del archivo ya sin uso, no una decisión nueva. Si FITS reactiva el formato, hay que pedirle el `.docx` de nuevo.
+
 ---
 
 ## Decisiones Pendientes
