@@ -1,80 +1,23 @@
-from docxtpl import RichText
+def format_education_item(e):
+    item = f"{e['degree']}, {e['institution']}"
+    if e.get("period"):
+        item += f" ({e['period']})"
+    return item
 
 
-def _append_break(rt, is_first):
-    if not is_first:
-        rt.xml += "<w:r><w:br/></w:r>"
+def build_education_items(education):
+    return [format_education_item(e) for e in education]
 
 
-def build_experience_block(experience):
-    rt = RichText()
-    for i, x in enumerate(experience):
-        _append_break(rt, i == 0)
+def build_experience_jobs(experience):
+    jobs = []
+    for x in experience:
         header = f"{x['title']} — {x['company']}"
         if x.get("location"):
             header += f", {x['location']}"
         header += f" ({x['period']})"
-        rt.add(header, bold=True)
-        for b in x["bullets"]:
-            rt.xml += "<w:r><w:br/></w:r>"
-            rt.add("• " + b)
-    return rt
-
-
-def build_education_block(education):
-    rt = RichText()
-    for i, e in enumerate(education):
-        _append_break(rt, i == 0)
-        item = f"{e['degree']}, {e['institution']}"
-        if e.get("period"):
-            item += f" ({e['period']})"
-        rt.add("• " + item)
-    return rt
-
-
-def build_certifications_block(certifications):
-    rt = RichText()
-    for i, c in enumerate(certifications):
-        _append_break(rt, i == 0)
-        rt.add("• " + c)
-    return rt
-
-
-def build_skills_block(skills):
-    rt = RichText()
-    for i, s in enumerate(skills):
-        _append_break(rt, i == 0)
-        rt.add("• " + s)
-    return rt
-
-
-def build_education_certifications_block(education, certifications):
-    rt = RichText()
-    first = True
-    for e in education:
-        _append_break(rt, first)
-        first = False
-        item = f"{e['degree']}, {e['institution']}"
-        if e.get("period"):
-            item += f" ({e['period']})"
-        rt.add("• " + item)
-    for c in certifications:
-        _append_break(rt, first)
-        first = False
-        rt.add("• " + c)
-    return rt
-
-
-def build_summary_skills_block(summary, town, skills):
-    rt = RichText()
-    rt.add(summary)
-    if town:
-        rt.xml += "<w:r><w:br/></w:r>"
-        rt.add(f"Resides in {town}.")
-    for s in skills:
-        rt.xml += "<w:r><w:br/></w:r>"
-        rt.add("• " + s)
-    return rt
+        jobs.append({"header": header, "bullets": list(x["bullets"])})
+    return jobs
 
 
 def build_new_format_context(cv):
@@ -82,10 +25,10 @@ def build_new_format_context(cv):
         "full_name": cv["full_name"],
         "years_experience": cv.get("years_experience"),
         "summary": cv["summary"],
-        "education_block": build_education_block(cv["education"]),
-        "experience_block": build_experience_block(cv["experience"]),
-        "certifications_block": build_certifications_block(cv.get("certifications", [])),
-        "skills_block": build_skills_block(cv["skills"]),
+        "education_items": build_education_items(cv["education"]),
+        "experience_jobs": build_experience_jobs(cv["experience"]),
+        "certifications_items": cv.get("certifications", []),
+        "skills_items": cv["skills"],
     }
 
 
@@ -93,13 +36,11 @@ def build_bd_format_context(cv):
     return {
         "full_name": cv["full_name"],
         "town": cv.get("town"),
-        "summary_skills_block": build_summary_skills_block(
-            cv["summary"], cv.get("town"), cv["skills"]
-        ),
-        "experience_block": build_experience_block(cv["experience"]),
-        "education_certifications_block": build_education_certifications_block(
-            cv["education"], cv.get("certifications", [])
-        ),
+        "summary": cv["summary"],
+        "skills_items": cv["skills"],
+        "experience_jobs": build_experience_jobs(cv["experience"]),
+        "education_certifications_items": build_education_items(cv["education"])
+        + list(cv.get("certifications", [])),
     }
 
 
@@ -108,3 +49,12 @@ CONTEXT_BUILDERS = {
     "non_template": build_new_format_context,
     "bd_format": build_bd_format_context,
 }
+
+
+CONTROL_TAG_STYLE = "CV Control Tag"
+
+
+def strip_empty_paragraphs(document):
+    for p in list(document.paragraphs):
+        if p.style.name == CONTROL_TAG_STYLE:
+            p._p.getparent().remove(p._p)

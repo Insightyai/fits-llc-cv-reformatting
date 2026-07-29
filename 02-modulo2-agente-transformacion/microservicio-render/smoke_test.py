@@ -5,7 +5,7 @@ from pathlib import Path
 import docx
 from docxtpl import DocxTemplate
 
-from blocks import CONTEXT_BUILDERS
+from blocks import CONTEXT_BUILDERS, strip_empty_paragraphs
 
 MODULE_DIR = Path(__file__).resolve().parent.parent
 TEMPLATES_DIR = MODULE_DIR / "templates" / "anotados"
@@ -29,6 +29,11 @@ def render(template_id, cv):
     tpl.render(context, autoescape=True)
     buf = io.BytesIO()
     tpl.save(buf)
+    buf.seek(0)
+    rendered_doc = docx.Document(buf)
+    strip_empty_paragraphs(rendered_doc)
+    buf = io.BytesIO()
+    rendered_doc.save(buf)
     buf.seek(0)
     return buf.read()
 

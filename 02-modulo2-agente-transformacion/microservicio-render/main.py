@@ -10,7 +10,7 @@ from docx import Document
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import JSONResponse, Response
 
-from blocks import CONTEXT_BUILDERS
+from blocks import CONTEXT_BUILDERS, strip_empty_paragraphs
 
 BASE_DIR = Path(__file__).resolve().parent
 MODULE_DIR = BASE_DIR.parent
@@ -99,6 +99,11 @@ async def render(request: Request, x_api_key: str = Header(default=None)):
         tpl.render(context, autoescape=True)
         buffer = io.BytesIO()
         tpl.save(buffer)
+        buffer.seek(0)
+        rendered_doc = Document(buffer)
+        strip_empty_paragraphs(rendered_doc)
+        buffer = io.BytesIO()
+        rendered_doc.save(buffer)
     except Exception:
         raise HTTPException(status_code=500, detail="Fallo al renderizar el .docx.")
 
