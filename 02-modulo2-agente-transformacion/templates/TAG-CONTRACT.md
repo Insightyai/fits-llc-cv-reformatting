@@ -24,8 +24,10 @@ Todo render debe llamarse `tpl.render(context, autoescape=True)`. Sin esto, `&`,
 Confirmado por render real: un campo `None` pasado a un tag `{{ }}` imprime literalmente la palabra `None` en el `.docx` (ej. `years_experience: null` → `"None+ YRS. OF EXP."`). **Todo campo que el schema marca `["string", "null"]` necesita guarda explícita**, nunca un tag directo:
 
 ```jinja
-{% if years_experience %}{{ years_experience }}{% endif %}+ YRS. OF EXP.
+{% if years_experience %}{{ years_experience }}+ YRS. OF EXP.{% endif %}
 ```
+
+**Bug corregido (30 jul 2026, hallado en auditoría de Opus):** la primera versión de este tag dejaba `+ YRS. OF EXP.` fuera del `{% endif %}` — con `years_experience: null` imprimía un `"+ YRS. OF EXP."` huérfano, y como `cv-schema.json` describía el campo con el `+` ya incluido (ej. `"8+"`), el render real producía `"8++ YRS. OF EXP."` (doble `+`). Corregido en dos lugares: el `.docx` ahora envuelve todo el texto literal dentro del `{% if %}` (mismo patrón que `town` en BD Format, que si desaparece por completo cuando es null), y `cv-schema.json` ahora especifica que `years_experience` va **sin** el `+` (el template lo agrega). Con `null`, el párrafo entero queda vacío — igual que cualquier otro guard de este documento.
 
 Campos nullable en `cv-schema.json`: `town`, `years_experience`, `experience[].location`, `education[].period`.
 
@@ -84,7 +86,7 @@ Comparten estructura (ver `conocimiento/anatomia-templates.md`). Mismo mapeo par
 | Sección | Tag |
 |---|---|
 | Header — nombre | `{{ full_name }}` |
-| Header — años de experiencia | `{% if years_experience %}{{ years_experience }}{% endif %}+ YRS. OF EXP.` |
+| Header — años de experiencia | `{% if years_experience %}{{ years_experience }}+ YRS. OF EXP.{% endif %}` |
 | EDUCATION | `{{r education_block }}` |
 | SUMMARY OF QUALIFICATIONS | `{{ summary }}` |
 | PROFESSIONAL EXPERIENCE | `{{r experience_block }}` |

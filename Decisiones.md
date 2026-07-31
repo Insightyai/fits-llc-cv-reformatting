@@ -123,6 +123,39 @@
 
 **Aparte:** el archivo `Worksense Template.docx` se eliminó del repo el mismo día. La decisión de **descartar el formato Worksense** ya estaba tomada por Paola (FITS) el 21 jul 2026 (ver entrada de esa fecha más arriba) — lo de hoy fue solo limpieza del archivo ya sin uso, no una decisión nueva. Si FITS reactiva el formato, hay que pedirle el `.docx` de nuevo.
 
+### 30 Jul 2026 — Bug de renderizado `years_experience` corregido, y arquitectura del Agente de Transformación AI
+**Contexto:** con el microservicio de render terminado y confirmado visualmente (29 jul), tocaba planificar la pieza que falta: el agente que produce el JSON canónico a partir del CV original. Un plan inicial (`planner`) fue auditado por Opus antes de implementar, mismo procedimiento que se usó para el microservicio de render — la auditoría verificó contra el repo real (incluida una extracción real del PDF de Shirley Mercado) y encontró fallas concretas.
+
+**Bug encontrado y corregido de inmediato (independiente del agente, ya en producción):** el header de años de experiencia renderizaba `"4++ YRS. OF EXP."` con el fixture de Shirley Mercado, y `"+ YRS. OF EXP."` huérfano cuando `years_experience` era `null` — el `.docx` de New Format/Non Template ya tenía un `"+"` literal después del tag, y `cv-schema.json` documentaba el campo con el `+` ya incluido (ej. `"8+"`), duplicándolo. El `smoke_test.py` no lo detectaba (solo valida contenido, no ese detalle de maquetación) y pasó la confirmación visual del 29 jul sin ser notado. **Corregido:** los dos `.docx` ahora envuelven todo el texto literal dentro del `{% if %}` (mismo patrón que `town` en BD Format), `cv-schema.json` especifica que el campo va sin `+` propio, el fixture de Shirley se ajustó a `"4"`, y `smoke_test.py` gana dos asserts que detectan esta clase de bug. 6/6 sigue en verde.
+
+**Decisión de arquitectura para el agente:** corre como código Python nuevo dentro del mismo servicio que ya renderiza (endpoint `POST /transform`), no como nodo nativo de N8N. Razón: la validación contra `cv-schema.json` y el grounding check anti-invención necesitan tests reales (pytest); un Code node de N8N no puede correr esa suite, y reescribir a mano la validación de schema en JS duplicaría una fuente de verdad que ya se decidió mantener única el 28 jul. N8N sigue orquestando todo lo demás (trigger, dedup, descarga del CV, llamada a `/transform` y luego a `/render`, entrega).
+
+**Consecuencia sobre la credencial Anthropic:** a diferencia de lo asumido en la entrada del 20 jul (que la credencial de N8N cubriría también este uso), el agente corre en el microservicio Python, así que necesita `ANTHROPIC_API_KEY` como variable de entorno ahí (Railway), no la credencial de N8N. La credencial `Anthropic - FITS` (`P3oMjAzU63IfOAff`) sigue siendo la única fuente del valor de esa key — no se provisiona una nueva — y sigue siendo la que usa Fase 1 (screening) en N8N, sin cambios ahí.
+
+**Decisión de modelo:** `claude-sonnet-5` fijado explícitamente, con `strict: true` en la tool de extracción estructurada (garantiza que el output valide contra el schema, en vez de depender solo de un retry de reparación). `temperature` no se envía (eliminado en los modelos Claude 5 — enviarlo devuelve 400). Sonnet 4.6 queda descartado para este endpoint por no soportar `strict`.
+
+**Otras decisiones registradas en `02-modulo2-agente-transformacion/agente/CONTRATO-AGENTE.md`:** 3 estados de salida (`ok`/`review`/`failed`), catálogo cerrado de códigos de warning, `REVIEW_BLOCKS_DELIVERY=true` por defecto (la auditoría encontró que el propio fixture ground-truth ya contiene una inferencia no verificada del LLM — "food and beverage manufacturing" no está en el CV original — que el diseño de grounding no atraparía como error; más barato revisar de más hasta medir con CVs reales), criterio v1 de `years_experience` (solo el número, sin `+`, con fecha de ejecución inyectable) y estilo de tercera persona impersonal verbo-primero.
+
+**Rename:** `02-modulo2-agente-transformacion/microservicio-render/` → `microservicio/` (incluye el `.venv`, verificado funcional tras el `git mv`), para reflejar que aloja tanto el render como el agente de transformación.
+
+**Impacto:** arranca la Fase 0 del plan del agente (documentación de contrato, ya completa). Siguiente: Fase 1 (extracción de texto de PDF/DOCX — la auditoría ya extrajo el PDF real y recomienda `pypdf` sobre `pdfplumber`, con normalización de letter-spacing propia).
+
+### 30 Jul 2026 — Fase 4: endpoint `POST /transform`
+**Decisión:** el body es JSON con base64 (`{"filename": ..., "content_base64": ...}`), no `multipart/form-data`.
+**Razón:** evita agregar `python-multipart` como dependencia nueva (no estaba en `requirements.txt`), mantiene el mismo patrón que ya usa `/render` (JSON + `jsonschema`), y es igual de simple de armar desde el HTTP Request node de N8N en la Fase 6.
+**Impacto:** N8N tendrá que codificar el CV descargado de JazzHR a base64 antes de llamar a `/transform` (nodo "Move Binary Data" o similar) — a tener en cuenta al diseñar el workflow de Fase 6.
+
+### 30 Jul 2026 — Fase 5: harness de CVs sintéticos, riesgo real encontrado en `skills[]`
+**Contexto:** sin el set de 15–20 CVs reales de FITS (pendiente, Fase 7), se armaron 4 CVs inventados a mano (`02-modulo2-agente-transformacion/cvs-prueba/sinteticos/`), uno por cada regla de contenido del PRD, para medir cumplimiento antes de gastar el set real.
+
+**Hallazgo real durante la primera corrida:** 2 de los 4 CVs sintéticos (el que no traía una sección explícita de "Skills") fallaron con `GROUNDING_FAILED`. El agente, al no encontrar una lista de habilidades en el CV original, la infirió parafraseando la experiencia narrada (ej. "Deviation investigation" a partir de "Investigated deviations" en los bullets) — y el grounding check de `skills[]` exige coincidencia de **token exacto** contra la fuente (sin stemming, sin tolerancia a paráfrasis: `grounding.significant_tokens` compara palabras completas, no substrings), así que la lista inferida se marcó como no verificable y bloqueó el CV como `failed`.
+
+**Decisión:** no relajar `grounding.py` todavía — el diseño conservador (bloquear en vez de asumir) es intencional (ver contrato de `REVIEW_BLOCKS_DELIVERY`, 30 jul). Se ajustaron los 2 CVs sintéticos para incluir una sección de Skills/Competencias explícita (con términos ya literales en el cuerpo del CV), aislando lo que cada test mide (las 4 reglas de contenido, no el comportamiento del agente ante CVs sin sección de Skills).
+
+**Riesgo pendiente para Fase 7:** varios de los CVs reales de FITS (población de manufactura/operarios en farmacéutica) podrían no traer una sección de Skills explícita, igual que los 2 sintéticos originales. Si eso pasa seguido con el set real, hay dos salidas: (a) el prompt instruye explícitamente dejar `skills: []` vacío si el CV no trae una lista propia, en vez de inferirla de la narrativa (evita el `failed`, pero entrega menos información útil), o (b) `grounding.py` gana una tolerancia tipo "soft" para `skills[]` igual a la que ya tienen `title`/`institution` (`TITLE_NOT_LITERAL_IN_SOURCE`/warning en vez de error) — a decidir con datos reales, no antes. Anotado también en `agente/CONTRATO-AGENTE.md` como pendiente de medir.
+
+**Resultado de la corrida completa:** 4/4 CVs sintéticos en verde (`ok`/`review`, nunca `failed`), tiempos de transformación entre 10s y 25s — muy por debajo del presupuesto interno de 60s y del criterio de 3 minutos punta a punta del PRD (que todavía no se puede medir completo porque Fase 6 no está wireada).
+
 ---
 
 ## Decisiones Pendientes
@@ -135,6 +168,10 @@
 - [x] Reutilizar la credencial Anthropic de Fase 1 (`P3oMjAzU63IfOAff` en `../../fits-llc/`) o provisionar una nueva — resuelto: se reutiliza la de Fase 1
 - [ ] Set de 15–20 CVs reales para las pruebas de aceptación del Módulo 2 (más allá del CV de prueba ya recibido, ver `02-modulo2-agente-transformacion/cvs-prueba/`)
 - [ ] Paso de revisión humana antes del envío grupal — confirmar con Paola/Jeremy si se quiere o si la entrega automática es aceptable
+- [ ] Criterio real de cálculo de `years_experience` — suma de períodos vs. lo declarado por el candidato (ver `agente/CONTRATO-AGENTE.md`, criterio v1 en uso mientras tanto)
+- [ ] Estilo de tercera persona: impersonal verbo-primero (v1 en uso) vs. con pronombre "He/She"
+- [ ] Si `REVIEW_BLOCKS_DELIVERY` (agente de transformación) puede pasar a `false` una vez medida la tasa de falsos positivos/negativos con CVs reales
+- [ ] Qué hacer si el grounding de `skills[]` bloquea seguido CVs reales sin sección explícita de habilidades — ver hallazgo de Fase 5 (30 jul 2026): prompt que deje `skills: []` vacío vs. relajar `grounding.py` a warning como `title`/`institution`
 - [x] Confirmar en cuáles workflows de JazzHR se habilita el/los nuevo(s) stage(s) — resuelto: 10 workflows, mapeo exacto arriba
 - [x] Corregir etapa mal nombrada en JNJ - Workflow 2024 (`Convert Resume - Worksense` → `Convert Resume - Non Template`) — resuelto 28 jul 2026, verificado vía API
 - [x] **Confirmar con Paola:** para JNJ - Workflow 2024, ¿la etapa "Convert Resume - New Format" debe generar el template Worksense en vez del template genérico de New Format? — resuelto: no, Worksense queda descartado, JNJ usa el template genérico de New Format (correo de Paola, 21 jul 2026)

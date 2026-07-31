@@ -46,6 +46,10 @@ def check(template_id, fixture_name, cv):
     assert "{{" not in full_text and "{%" not in full_text, "quedo un tag sin resolver"
     assert "None" not in full_text, "un campo null se imprimio como 'None' literal"
     assert cv["full_name"] in full_text, "full_name no aparece en el render"
+    assert "++" not in full_text, "years_experience duplico el '+' (bug '8++ YRS. OF EXP.')"
+    assert "+ YRS. OF EXP." not in full_text or cv.get("years_experience"), (
+        "quedo un '+ YRS. OF EXP.' huerfano con years_experience null"
+    )
 
     for exp in cv["experience"]:
         for b in exp["bullets"]:

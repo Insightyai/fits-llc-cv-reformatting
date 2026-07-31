@@ -1,6 +1,6 @@
 # Reglas de Contenido por Formato
 
-> Consolida las 4 reglas universales del PRD con las particularidades encontradas al inspeccionar los templates (`anatomia-templates.md`) y el mapeo de placeholders (`../02-modulo2-agente-transformacion/templates/MAPEO-PLACEHOLDERS.md`). Referencia para el prompt de transformación (Fase 3 del plan).
+> Consolida las 4 reglas universales del PRD con las particularidades encontradas al inspeccionar los templates (`anatomia-templates.md`) y el mapeo de placeholders (`../02-modulo2-agente-transformacion/templates/MAPEO-PLACEHOLDERS.md`). Referencia para el prompt de transformación (`../02-modulo2-agente-transformacion/prompt/transform-v1.md`, ver contrato en `../02-modulo2-agente-transformacion/agente/CONTRATO-AGENTE.md`).
 
 ## Reglas universales (aplican a los 3 formatos activos: New Format, Non Template, BD Format)
 
@@ -11,7 +11,7 @@ Del PRD (`Módulo 2`), en orden de aplicación:
 3. **Objectives → Summary profesional** — si el CV trae una sección "Objective" (típico de CVs en primera persona, poco profesionales), se reemplaza por un "Summary" redactado en tono profesional de reclutamiento, no se traduce literalmente.
 4. **Reescritura de summaries pobres o incompletos** — si ya existe un Summary pero es débil (muy corto, genérico, mal redactado), se reescribe. Este es el único campo evaluado por aprobación humana (≥90%, no automática) — ver `PRD.md` §Módulo 2, "Por qué el criterio no es simplemente 95% de precisión".
 
-**No inventar información.** Ninguna de las 4 reglas autoriza agregar experiencia, empresas, fechas o títulos que no estén en el CV original — son reglas de forma (idioma, persona gramatical, tono), no de contenido. Ver Fase 3.2 del plan (grounding check) para la validación determinística de esto.
+**No inventar información.** Ninguna de las 4 reglas autoriza agregar experiencia, empresas, fechas o títulos que no estén en el CV original — son reglas de forma (idioma, persona gramatical, tono), no de contenido. Ver `../02-modulo2-agente-transformacion/microservicio/grounding.py` (Fase 3 del plan de implementación del agente, `agente/CONTRATO-AGENTE.md`) para la validación determinística de esto.
 
 ## Regla especial — BD Format (Becton Dickinson)
 
@@ -32,7 +32,7 @@ Esto es puramente de presentación (resuelto en el template al renderizar `educa
 
 New Format y Non Template requieren un valor tipo "8+ YRS. OF EXP." en el header. Ninguna de las 4 reglas de contenido del PRD lo menciona — es una exigencia del layout del template, no una regla de transformación de contenido.
 
-**Pendiente de definir con FITS:** cómo se calcula (suma de todos los períodos de `experience[]`, sin solapamientos, redondeado hacia abajo; o el candidato lo declara en su CV original y se copia tal cual si está presente). Hasta confirmar, el prompt debe calcularlo de la forma más conservadora (a partir de fechas explícitas en el CV) y dejar constancia en `_meta.warnings` si no puede determinarse con confianza, en vez de inventar un número.
+**Pendiente de definir con FITS:** cómo se calcula (suma de todos los períodos de `experience[]`, sin solapamientos, redondeado hacia abajo; o el candidato lo declara en su CV original y se copia tal cual si está presente). Hasta confirmar, el criterio v1 (ver `agente/CONTRATO-AGENTE.md`) lo calcula de la forma más conservadora (a partir de fechas explícitas en el CV, solo el número sin el sufijo `+` que ya agrega el template) y deja constancia en `_meta.warnings` (`YEARS_EXPERIENCE_UNKNOWN`) si no puede determinarse con confianza, en vez de inventar un número.
 
 ## Formato sin reglas propias: Worksense
 

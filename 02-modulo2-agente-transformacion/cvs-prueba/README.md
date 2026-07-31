@@ -4,6 +4,18 @@ CVs originales (sin convertir) usados para probar el agente de transformación. 
 
 | Archivo | Notas |
 |---|---|
-| `Resume- Shirley Mercado.pdf` | CV de prueba — en inglés, primera persona, sin formato FITS |
+| `Resume- Shirley Mercado.pdf` | CV real de prueba — en inglés, primera persona, sin formato FITS |
+| `sinteticos/` | 4 CVs sintéticos (Fase 5), uno por cada regla de contenido del PRD — ver tabla abajo |
 
-El PRD (`../../PRD.md`) pide un set de 15–20 CVs reales para las pruebas de aceptación del Módulo 2. Agregar aquí cada uno a medida que FITS los envíe.
+El PRD (`../../PRD.md`) pide un set de 15–20 CVs reales para las pruebas de aceptación del Módulo 2 (Fase 7). Agregar aquí cada uno a medida que FITS los envíe.
+
+## `sinteticos/` — harness de la Fase 5
+
+CVs inventados a mano (sin datos reales de candidatos) para poder medir el cumplimiento de las 4 reglas de contenido del agente sin depender del set real de FITS, que todavía no llegó. Cada uno ejercita una regla distinta o una combinación, y ninguno inventa información inexistente (nombres, empresas y fechas son ficticios pero coherentes — el grounding check se corre igual contra el texto de cada archivo). Ver `tests/test_synthetic_harness.py` (marcado `llm`, opt-in).
+
+| Archivo | Regla(s) que ejercita |
+|---|---|
+| `01-espanol-objetivo-primera-persona.txt` | Regla 1 (traducción) + Regla 2 (tercera persona) + Regla 3 (Objective → Summary) combinadas |
+| `02-ingles-i-statements-summary-bueno.txt` | Regla 2 sola — ya en inglés, ya trae un Summary profesional (no debería reescribirse) |
+| `03-ingles-objective-sin-i-statements.txt` | Regla 3 sola — ya en inglés, bullets ya impersonales |
+| `04-ingles-summary-pobre.txt` | Regla 4 sola — Summary existente pero pobre/genérico |

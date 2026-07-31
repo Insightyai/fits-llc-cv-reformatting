@@ -1,6 +1,9 @@
+import base64
+import binascii
 import io
 import json
 import os
+from datetime import date
 from email.utils import encode_rfc2231
 from pathlib import Path
 
@@ -8,9 +11,12 @@ import jsonschema
 from docxtpl import DocxTemplate
 from docx import Document
 from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse, Response
 
+from agent import TransformError, transform
 from blocks import CONTEXT_BUILDERS, strip_empty_paragraphs
+from extract import ExtractionError, extract_text
 
 BASE_DIR = Path(__file__).resolve().parent
 MODULE_DIR = BASE_DIR.parent
@@ -25,7 +31,13 @@ TEMPLATES = {
 }
 
 API_KEY = os.environ.get("API_KEY")
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
 MAX_BODY_BYTES = int(os.environ.get("MAX_BODY_BYTES", 2_000_000))
+MAX_TRANSFORM_BODY_BYTES = int(os.environ.get("MAX_TRANSFORM_BODY_BYTES", 8_000_000))
+ROUTE_BODY_LIMITS = {
+    "/render": MAX_BODY_BYTES,
+    "/transform": MAX_TRANSFORM_BODY_BYTES,
+}
 
 app = FastAPI(title="CV Reformatting — Microservicio de Render")
 
@@ -34,6 +46,8 @@ app = FastAPI(title="CV Reformatting — Microservicio de Render")
 def load_schema_and_check_templates():
     if not API_KEY:
         raise RuntimeError("API_KEY no está configurada — obligatoria para arrancar el servicio.")
+    if not ANTHROPIC_API_KEY:
+        raise RuntimeError("ANTHROPIC_API_KEY no está configurada — obligatoria para arrancar el servicio.")
     if not SCHEMA_PATH.exists():
         raise RuntimeError(f"No se encontró cv-schema.json en {SCHEMA_PATH}")
     with open(SCHEMA_PATH, encoding="utf-8") as f:
@@ -45,11 +59,12 @@ def load_schema_and_check_templates():
 
 @app.middleware("http")
 async def enforce_max_body_size(request: Request, call_next):
+    limit = ROUTE_BODY_LIMITS.get(request.url.path, MAX_BODY_BYTES)
     content_length = request.headers.get("content-length")
-    if content_length is not None and int(content_length) > MAX_BODY_BYTES:
+    if content_length is not None and int(content_length) > limit:
         return JSONResponse(
             status_code=413,
-            content={"error": f"Cuerpo del request excede el límite de {MAX_BODY_BYTES} bytes."},
+            content={"error": f"Cuerpo del request excede el límite de {limit} bytes."},
         )
     return await call_next(request)
 
@@ -125,3 +140,54 @@ async def render(request: Request, x_api_key: str = Header(default=None)):
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         headers={"Content-Disposition": content_disposition},
     )
+
+
+@app.post("/transform")
+async def transform_endpoint(request: Request, x_api_key: str = Header(default=None)):
+    check_api_key(x_api_key)
+
+    try:
+        body = await request.json()
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Body no es JSON válido.")
+
+    filename = body.get("filename")
+    content_b64 = body.get("content_base64")
+
+    if not filename or not content_b64:
+        raise HTTPException(
+            status_code=400, detail="Faltan 'filename' o 'content_base64' (objeto JSON)."
+        )
+
+    try:
+        data = base64.b64decode(content_b64, validate=True)
+    except binascii.Error:
+        raise HTTPException(status_code=400, detail="'content_base64' no es base64 válido.")
+
+    try:
+        extracted = extract_text(filename, data)
+    except ExtractionError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={"state": "failed", "code": exc.code, "detail": exc.detail},
+        )
+
+    try:
+        cv, usage, state = await run_in_threadpool(
+            transform,
+            extracted.text,
+            date.today(),
+            api_key=ANTHROPIC_API_KEY,
+            extract_warnings=extracted.warnings,
+        )
+    except TransformError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={"state": "failed", "code": exc.code, "detail": exc.detail},
+        )
+
+    return {
+        "state": state,
+        "cv": cv,
+        "usage": {"input_tokens": usage.input_tokens, "output_tokens": usage.output_tokens},
+    }

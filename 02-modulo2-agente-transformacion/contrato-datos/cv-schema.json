@@ -17,7 +17,7 @@
     },
     "years_experience": {
       "type": ["string", "null"],
-      "description": "Anios totales de experiencia profesional, como string ya formateado para el header de New Format/Non Template (ej. '8+'). Calculado por el agente a partir de las fechas de experience[]; null si no se puede determinar con confianza. NOTA: no es una de las 4 reglas de contenido del PRD -- lo exige el layout del template, hay que confirmar el criterio de calculo con FITS (ver Decisiones.md)."
+      "description": "Anios totales de experiencia profesional, como numero en string, SIN el sufijo '+' (ej. '8', no '8+') -- el template ya agrega el '+' y ' YRS. OF EXP.' de forma literal (ver templates/TAG-CONTRACT.md); duplicar el '+' en este campo produce '8++ YRS. OF EXP.' en el .docx. Calculado por el agente a partir de las fechas de experience[]; null si no se puede determinar con confianza. NOTA: no es una de las 4 reglas de contenido del PRD -- lo exige el layout del template, hay que confirmar el criterio de calculo con FITS (ver Decisiones.md)."
     },
     "summary": {
       "type": "string",
@@ -83,7 +83,7 @@
         "warnings": {
           "type": "array",
           "items": {"type": "string"},
-          "description": "Ej. 'years_experience no pudo calcularse', 'CV sin seccion de educacion', 'experience con fechas ambiguas'. Alimenta la regla fail-closed (Fase 3.3 del plan)."
+          "description": "Codigos cerrados con formato 'CODIGO: detalle', ver catalogo completo en 02-modulo2-agente-transformacion/agente/CONTRATO-AGENTE.md. Alimenta la regla fail-closed (estados ok/review/failed, mismo documento)."
         }
       }
     }
