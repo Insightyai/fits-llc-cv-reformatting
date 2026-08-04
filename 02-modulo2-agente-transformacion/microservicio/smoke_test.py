@@ -7,9 +7,9 @@ from docxtpl import DocxTemplate
 
 from blocks import CONTEXT_BUILDERS, strip_empty_paragraphs
 
-MODULE_DIR = Path(__file__).resolve().parent.parent
-TEMPLATES_DIR = MODULE_DIR / "templates" / "anotados"
-FIXTURES_DIR = MODULE_DIR / "contrato-datos" / "fixtures"
+BASE_DIR = Path(__file__).resolve().parent
+TEMPLATES_DIR = BASE_DIR / "templates" / "anotados"
+FIXTURES_DIR = BASE_DIR / "contrato-datos" / "fixtures"
 
 TEMPLATES = {
     "new_format": TEMPLATES_DIR / "New Format Resume Template.docx",

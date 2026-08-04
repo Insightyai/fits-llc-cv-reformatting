@@ -15,7 +15,7 @@ CV_PDF_PATH = (
     / "Resume- Shirley Mercado.pdf"
 )
 FIXTURE_PATH = (
-    pathlib.Path(__file__).resolve().parent.parent.parent
+    pathlib.Path(__file__).resolve().parent.parent
     / "contrato-datos"
     / "fixtures"
     / "shirley-mercado.json"

@@ -2,7 +2,7 @@ import json
 import pathlib
 
 CV_SCHEMA_PATH = (
-    pathlib.Path(__file__).resolve().parent.parent / "contrato-datos" / "cv-schema.json"
+    pathlib.Path(__file__).resolve().parent / "contrato-datos" / "cv-schema.json"
 )
 
 TOOL_NAME = "emit_cv"

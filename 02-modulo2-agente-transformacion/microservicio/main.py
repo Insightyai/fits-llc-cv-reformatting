@@ -19,10 +19,9 @@ from blocks import CONTEXT_BUILDERS, strip_empty_paragraphs
 from extract import ExtractionError, extract_text
 
 BASE_DIR = Path(__file__).resolve().parent
-MODULE_DIR = BASE_DIR.parent
 
-SCHEMA_PATH = MODULE_DIR / "contrato-datos" / "cv-schema.json"
-TEMPLATES_DIR = MODULE_DIR / "templates" / "anotados"
+SCHEMA_PATH = BASE_DIR / "contrato-datos" / "cv-schema.json"
+TEMPLATES_DIR = BASE_DIR / "templates" / "anotados"
 
 TEMPLATES = {
     "new_format": TEMPLATES_DIR / "New Format Resume Template.docx",

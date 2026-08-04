@@ -9,9 +9,9 @@ import dates
 import grounding
 from tool_schema import TOOL_NAME, build_tool_definition
 
-MODULE_DIR = pathlib.Path(__file__).resolve().parent.parent
-PROMPT_PATH = MODULE_DIR / "prompt" / "transform-v1.md"
-CV_SCHEMA_PATH = MODULE_DIR / "contrato-datos" / "cv-schema.json"
+BASE_DIR = pathlib.Path(__file__).resolve().parent
+PROMPT_PATH = BASE_DIR / "prompt" / "transform-v1.md"
+CV_SCHEMA_PATH = BASE_DIR / "contrato-datos" / "cv-schema.json"
 
 MODEL = "claude-sonnet-5"
 MAX_TOKENS = 16000

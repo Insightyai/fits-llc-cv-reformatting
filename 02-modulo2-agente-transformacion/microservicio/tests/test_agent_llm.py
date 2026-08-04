@@ -15,7 +15,7 @@ CV_PDF_PATH = (
     / "Resume- Shirley Mercado.pdf"
 )
 CV_SCHEMA_PATH = (
-    pathlib.Path(__file__).resolve().parent.parent.parent
+    pathlib.Path(__file__).resolve().parent.parent
     / "contrato-datos"
     / "cv-schema.json"
 )
