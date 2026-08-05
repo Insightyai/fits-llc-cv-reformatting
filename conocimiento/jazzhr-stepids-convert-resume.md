@@ -1,26 +1,28 @@
 # Mapa de Etapas "Convert Resume" en JazzHR
 
 > Obtenido vía `GET https://api.resumatorapi.com/v1/workflows?apikey=...` (`JAZZHR_API_KEY` en `.env`) el 28 jul 2026. Confirma y completa el mapeo cualitativo de `PRD.md` §3 con los `workflow_id` y `step_id` reales que necesita el Code node de selección de template (Módulo 2).
+>
+> **Actualización 4 ago 2026:** se agregó la columna `workflowId interno`, necesaria para el poller de Fase 6 (Módulo 2). El poller detecta candidatos vía la API interna `api.jazz.co` (misma que usa el poller de AI Screening), cuyo endpoint `GET /job` identifica cada job por un `workflowId` numérico propio — un tercer espacio de IDs de JazzHR, distinto tanto del `workflow_id` alfanumérico (API pública) como del `step_id` numérico de las etapas. Se correlacionó cruzando, para varios jobs conocidos, su `workflowId` interno (vía un workflow temporal descartable en `fits.app.n8n.cloud`, reutilizando la credencial "JazzHR Cookie" ya activa) contra su `workflow_id` alfanumérico (vía la API pública, `GET /jobs/{id}`).
 
 ## Las 13 etapas, con IDs reales
 
-| Workflow | workflow_id | step_id | number | Nombre exacto de la etapa (tal como está en JazzHR) | Formato |
-|---|---|---|---|---|---|
-| Abbott FG - Workflow 2024 | `workflow_20240528144743_ZHRXPUV7WPL3H4QF` | `10727628` | 8 | `CONVERT RESUME-NON TEMPLATE` | Non Template |
-| Amgen FG - Workflow 2024 | `workflow_20240527195729_G5PIJLQ80TBWVTTF` | `10727629` | 8 | `CONVERT RESUME-NON TEMPLATE` | Non Template |
-| Becton Dickinson - Workflow 2024 | `workflow_20240522132127_UTAFYZG9FRGGLUCM` | `10727630` | 8 | `CONVERT RESUME-BD FORMAT` | BD Format |
-| Beeline - Workflow 2024 | `workflow_20240527195850_NH79K94T0HUCCDYN` | `10727631` | 7 | `CONVERT RESUME-NON TEMPLATE` | Non Template |
-| Haleon FG - Workflow 2026 | `workflow_20260113121345_L8PDBY2NRSD8OPNW` | `10727632` | 7 | `Convert Resume - Non Template` | Non Template |
-| Haleon FG - Workflow 2026 | `workflow_20260113121345_L8PDBY2NRSD8OPNW` | `10727633` | 8 | `CONVERT RESUME-NEW FORMAT` | New Format |
-| Integra FG - Workflow 2024 | `workflow_20240802152448_GZRUI1QHVMAWTQC3` | `10727634` | 7 | `CONVERT RESUME-NON TEMPLATE` | Non Template |
-| JazzHR Standard Workflow | `workflow_20180926200749_TDLCNSZAGDZ81EYV` | `10727648` | 10 | `CONVERT RESUME-NON TEMPLATE` | Non Template |
-| JazzHR Standard Workflow | `workflow_20180926200749_TDLCNSZAGDZ81EYV` | `10727649` | 11 | `CONVERT RESUME-NEW FORMAT` | New Format |
-| JNJ - Workflow 2024 | `workflow_20240524193156_FPOXYAQA1EGM1MCO` | `10727652` | 9 | `CONVERT RESUME-NON TEMPLATE` | Non Template |
-| JNJ - Workflow 2024 | `workflow_20240524193156_FPOXYAQA1EGM1MCO` | `10727653` | 10 | `CONVERT RESUME-NEW FORMAT` | New Format |
-| Medtronic - Workflow 2024 | `workflow_20240524195645_7XAAQ99VTWVFLBJS` | `10727654` | 10 | `CONVERT RESUME-NON TEMPLATE` | Non Template |
-| SOW Workflow 2024 | `workflow_20240620184425_NDIQGY0EF7EZQMUE` | `10727655` | 9 | `CONVERT RESUME-NEW FORMAT` | New Format |
+| Workflow | `workflowId` interno | workflow_id | step_id | number | Nombre exacto de la etapa (tal como está en JazzHR) | Formato |
+|---|---|---|---|---|---|---|
+| Abbott FG - Workflow 2024 | `653543` | `workflow_20240528144743_ZHRXPUV7WPL3H4QF` | `10727628` | 8 | `CONVERT RESUME-NON TEMPLATE` | Non Template |
+| Amgen FG - Workflow 2024 | `653512` | `workflow_20240527195729_G5PIJLQ80TBWVTTF` | `10727629` | 8 | `CONVERT RESUME-NON TEMPLATE` | Non Template |
+| Becton Dickinson - Workflow 2024 | `653158` | `workflow_20240522132127_UTAFYZG9FRGGLUCM` | `10727630` | 8 | `CONVERT RESUME-BD FORMAT` | BD Format |
+| Beeline - Workflow 2024 | `653513` | `workflow_20240527195850_NH79K94T0HUCCDYN` | `10727631` | 7 | `CONVERT RESUME-NON TEMPLATE` | Non Template |
+| Haleon FG - Workflow 2026 | `697003` | `workflow_20260113121345_L8PDBY2NRSD8OPNW` | `10727632` | 7 | `Convert Resume - Non Template` | Non Template |
+| Haleon FG - Workflow 2026 | `697003` | `workflow_20260113121345_L8PDBY2NRSD8OPNW` | `10727633` | 8 | `CONVERT RESUME-NEW FORMAT` | New Format |
+| Integra FG - Workflow 2024 | `660931` | `workflow_20240802152448_GZRUI1QHVMAWTQC3` | `10727634` | 7 | `CONVERT RESUME-NON TEMPLATE` | Non Template |
+| JazzHR Standard Workflow | `499366` | `workflow_20180926200749_TDLCNSZAGDZ81EYV` | `10727648` | 10 | `CONVERT RESUME-NON TEMPLATE` | Non Template |
+| JazzHR Standard Workflow | `499366` | `workflow_20180926200749_TDLCNSZAGDZ81EYV` | `10727649` | 11 | `CONVERT RESUME-NEW FORMAT` | New Format |
+| JNJ - Workflow 2024 | `653470` | `workflow_20240524193156_FPOXYAQA1EGM1MCO` | `10727652` | 9 | `CONVERT RESUME-NON TEMPLATE` | Non Template |
+| JNJ - Workflow 2024 | `653470` | `workflow_20240524193156_FPOXYAQA1EGM1MCO` | `10727653` | 10 | `CONVERT RESUME-NEW FORMAT` | New Format |
+| Medtronic - Workflow 2024 | `653474` | `workflow_20240524195645_7XAAQ99VTWVFLBJS` | `10727654` | 10 | `CONVERT RESUME-NON TEMPLATE` | Non Template |
+| SOW Workflow 2024 | `655764` | `workflow_20240620184425_NDIQGY0EF7EZQMUE` | `10727655` | 9 | `CONVERT RESUME-NEW FORMAT` | New Format |
 
-13/13 etapas confirmadas — coincide con el conteo esperado del PRD (8 Non Template + 4 New Format + 1 BD Format).
+13/13 etapas confirmadas — coincide con el conteo esperado del PRD (8 Non Template + 4 New Format + 1 BD Format). Los 10 `workflowId` internos coinciden exactamente con las claves de `FIRST_STEP_MAP` del poller de AI Screening (`JazzHR - AI Screening Poller`, nodo "Filtrar Open y Extraer IDs") — son los mismos 10 workflows de cliente, solo que ese poller los usa para detectar la etapa "New" (posición 1), no "Convert Resume".
 
 ## Hallazgo importante para el Code node de selección de template
 
