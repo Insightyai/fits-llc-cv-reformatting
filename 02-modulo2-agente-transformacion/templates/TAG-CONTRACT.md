@@ -104,9 +104,8 @@ Esto lo arma `blocks.build_experience_companies()` en Python (nunca en el `.docx
 
 | Sección | Tag |
 |---|---|
-| Header — nombre | `{{ full_name }}` |
-| Header — años de experiencia | `{% if years_experience %}{{ years_experience }}+ YRS. OF EXP.{% endif %}` |
-| EDUCATION | `{% for item in education_items %}` / `{{ item }}` (viñeta nativa) / `{% endfor %}` |
+| Header — nombre + años de experiencia | `{{ full_name }}\t{% if years_experience %}{{ years_experience }}+ YRS. OF EXP.{% endif %}` — **una sola línea**, tab stop right en `9360` (mismo valor que `company.header`) |
+| EDUCATION | `{% for item in education_items %}` / `{{ item.degree }}` (negrita, sin viñeta) / `{{ item.institution }}` (sin negrita, sin viñeta) / `{% endfor %}` — **sin fecha**, nunca se muestra `period` |
 | SUMMARY OF QUALIFICATIONS | `{{ summary }}` |
 | PROFESSIONAL EXPERIENCE | `{% for company in experience_companies %}` → `{{ company.header }}` → `{% for role in company.roles %}` → `{{ role.header }}` → `{% for b in role.bullets %}` → `{{ b }}` (viñeta nativa) → 3x `{% endfor %}` |
 | SKILLS | `{% for item in skills_items %}` / `{{ item }}` (viñeta nativa) / `{% endfor %}` — **va antes** de certificaciones (orden confirmado por canon Kenneth/Yanina, invierte el orden original) |
@@ -114,6 +113,8 @@ Esto lo arma `blocks.build_experience_companies()` en Python (nunca en el `.docx
 | Footer | `{{ full_name }}` |
 
 **No implementado en esta ronda (decisión explícita de Santiago):** `CORE COMPETENCIES` antes de la experiencia y `TECHNICAL & PROFESSIONAL SKILLS` con subtítulos en negrita por categoría, ambos presentes en el canon de Kenneth pero no en el de Yanina — se adoptó la estructura de Yanina (más simple, sin esas 2 secciones) como estándar único de New Format. Tampoco se implementa partir la experiencia en una sección `ADDITIONAL EXPERIENCE` (presente en el canon de Yanina) — decisión explícita: nunca partir automáticamente, todo va en `PROFESSIONAL EXPERIENCE`.
+
+**Bug encontrado y corregido (11 ago 2026, con un candidato real de FITS — Steven Palmer-Velazquez):** el header de nombre+años estaba armado con un truco de sección de 2 columnas (`w:cols w:num="2"`) esperando que Word pusiera cada párrafo en una columna distinta — no funciona así (Word solo pasa contenido a la columna 2 cuando la columna 1 desborda por altura, nunca por párrafo), así que `{{ full_name }}` y los años siempre salían en dos líneas apiladas, nunca lado a lado como en el canon. Corregido fusionando ambos en un solo párrafo con un tab stop derecho (mismo mecanismo ya usado y confirmado en `company.header`), eliminando la sección de 2 columnas. De paso se encontró que `EDUCATION` nunca había separado grado/institución en negrita/plano como el canon — `format_education_item()` en `blocks.py` armaba un string único "grado, institución (período)" con viñeta Wingdings, ninguno de los cuales aparece en los 6 CVs canon de Paola. Nueva función `build_education_entries()` devuelve `{degree, institution}` sin período; los 2 templates que usan `education_items` (New Format, Non Template) se editaron para 2 párrafos por item, sin viñeta. BD Format no se tocó (su bloque de educación combina educación+certificaciones en una sola lista, `education_certifications_items`, que sigue usando el string plano de `build_education_items()` — fuera de alcance de este fix).
 
 ## Tabla de tags — Non Template Resume.docx
 

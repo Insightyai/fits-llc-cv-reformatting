@@ -1,5 +1,6 @@
 from blocks import (
     build_bd_format_context,
+    build_education_entries,
     build_experience_companies,
     build_new_format_context,
 )
@@ -128,3 +129,25 @@ def test_bd_format_context_drops_skills_from_summary():
     assert "skills_items" not in context
     assert context["town"] == "Mayagüez, PR"
     assert context["experience_companies"][0]["header"] == "Acme\tJan 2020 - Dec 2021"
+
+
+def test_education_entries_split_degree_institution_no_period():
+    # canon de Paola (Yanina, Andrea): educacion muestra grado en negrita y la
+    # institucion debajo, sin fechas -- nunca un string combinado con periodo.
+    education = [{"degree": "B.S. in Chemistry", "institution": "UPR Mayaguez", "period": "2019 - 2023"}]
+    entries = build_education_entries(education)
+    assert entries == [{"degree": "B.S. in Chemistry", "institution": "UPR Mayaguez"}]
+
+
+def test_new_format_context_uses_education_entries_not_strings():
+    cv = {
+        "full_name": "Jane Doe",
+        "years_experience": "3",
+        "summary": "Summary.",
+        "skills": [],
+        "certifications": [],
+        "experience": [],
+        "education": [{"degree": "B.S. in Chemistry", "institution": "UPR Mayaguez", "period": "2019 - 2023"}],
+    }
+    context = build_new_format_context(cv)
+    assert context["education_items"] == [{"degree": "B.S. in Chemistry", "institution": "UPR Mayaguez"}]

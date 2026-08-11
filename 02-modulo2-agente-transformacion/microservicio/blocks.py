@@ -12,6 +12,14 @@ def build_education_items(education):
     return [format_education_item(e) for e in education]
 
 
+def format_education_entry(e):
+    return {"degree": e["degree"], "institution": e["institution"]}
+
+
+def build_education_entries(education):
+    return [format_education_entry(e) for e in education]
+
+
 def _company_key(x):
     return (x["company"], x.get("location"))
 
@@ -58,7 +66,7 @@ def build_new_format_context(cv):
         "full_name": cv["full_name"],
         "years_experience": cv.get("years_experience"),
         "summary": cv["summary"],
-        "education_items": build_education_items(cv["education"]),
+        "education_items": build_education_entries(cv["education"]),
         "experience_companies": build_experience_companies(cv["experience"]),
         "certifications_items": cv.get("certifications", []),
         "skills_items": cv["skills"],
