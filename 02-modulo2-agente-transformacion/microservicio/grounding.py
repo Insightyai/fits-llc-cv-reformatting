@@ -18,6 +18,7 @@ _YEAR_RE = re.compile(r"\b(?:19|20)\d{2}\b")
 _METRIC_RE = re.compile(r"\$?\d[\d,]*(?:\.\d+)?%?")
 
 _I_EXCEPTIONS_BEFORE = {"phase", "level", "class", "type", "operator", "part"}
+_ROMAN_NUMERAL_SEQUENCE_RE = re.compile(r"^\s*[&,/]\s*I{2,3}\b")
 
 # Palabras genericas de vocabulario profesional que un summary reescrito (regla 4 del
 # PRD) puede usar sin que esten literalmente en la fuente -- reduce ruido del check
@@ -124,8 +125,10 @@ def _check_i_statement(text, report):
     for m in re.finditer(r"\bI\b", text):
         preceding_words = text[: m.start()].split()
         prev = re.sub(r"[^a-zA-Z]", "", preceding_words[-1]).lower() if preceding_words else ""
-        following = text[m.end() : m.end() + 2]
+        following = text[m.end() : m.end() + 12]
         if prev in _I_EXCEPTIONS_BEFORE or following.lower().startswith("/o"):
+            continue
+        if _ROMAN_NUMERAL_SEQUENCE_RE.match(following):
             continue
         snippet = text[max(0, m.start() - 20) : m.end() + 10].strip()
         report.errors.append(f"GROUNDING_I_STATEMENT: {snippet!r}")

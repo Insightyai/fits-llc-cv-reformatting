@@ -84,6 +84,23 @@ def test_domain_exception_phase_i_is_not_flagged(clean_cv, source_text):
     assert report.errors == []
 
 
+def test_roman_numeral_sequence_i_ii_is_not_flagged(clean_cv, source_text):
+    # candidato real de FITS (Steven Palmer-Velazquez): "Chemistry Laboratory I & II"
+    # es un nombre de curso con numeracion romana secuencial, no un pronombre.
+    cv = copy.deepcopy(clean_cv)
+    cv["experience"][0]["bullets"][0] = "Completed coursework in Chemistry Laboratory I & II."
+    report = grounding.evaluate(cv, source_text)
+    assert report.errors == []
+
+
+def test_genuine_i_statement_before_laboratory_is_still_flagged(clean_cv, source_text):
+    # la excepcion de secuencia romana no debe volverse una excusa general para "laboratory"
+    cv = copy.deepcopy(clean_cv)
+    cv["experience"][0]["bullets"][0] = "Managed the laboratory. I also trained new staff."
+    report = grounding.evaluate(cv, source_text)
+    assert any(e.startswith("GROUNDING_I_STATEMENT") for e in report.errors)
+
+
 def test_invented_metric_is_error(clean_cv, source_text):
     cv = copy.deepcopy(clean_cv)
     cv["experience"][0]["bullets"][0] = "Reduced costs by 37% through process optimization."
