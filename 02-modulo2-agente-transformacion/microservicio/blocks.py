@@ -3,15 +3,26 @@ import re
 from dates import combine_periods
 
 _MONTH_ABBR_RE = re.compile(r"\b(Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\b(?!\.)")
+_HYPHEN_RANGE_RE = re.compile(r"\s-\s")
+_ABBREV_MISSING_DOT_RE = re.compile(r"\(([A-Z]\.[A-Z])\)")
 
 
 def format_period_for_display(period):
-    """Agrega punto tras abreviaturas de mes (canon de Paola: 'Jan. 2021 - Dec. 2025'),
-    nunca cambia el contenido semantico de la fecha -- solo puntuacion, aplicado
-    despues de que grounding.py ya valido el periodo crudo."""
+    """Agrega punto tras abreviaturas de mes y normaliza el separador a raya larga
+    (canon de Paola: 'Jan. 2021 – Dec. 2025'), nunca cambia el contenido semantico
+    de la fecha -- solo puntuacion, aplicado despues de que grounding.py ya valido el
+    periodo crudo."""
     if not period:
         return period
-    return _MONTH_ABBR_RE.sub(lambda m: m.group(0) + ".", period)
+    period = _MONTH_ABBR_RE.sub(lambda m: m.group(0) + ".", period)
+    period = _HYPHEN_RANGE_RE.sub(" – ", period)
+    return period
+
+
+def _fix_abbrev_missing_dot(text):
+    """'(B.S)' -> '(B.S.)' -- abreviatura de 2 letras a la que le falta el punto
+    final, patron encontrado en output real del agente (Steven Palmer-Velazquez)."""
+    return _ABBREV_MISSING_DOT_RE.sub(lambda m: f"({m.group(1)}.)", text)
 
 
 def format_education_item(e):
@@ -26,7 +37,7 @@ def build_education_items(education):
 
 
 def format_education_entry(e):
-    return {"degree": e["degree"], "institution": e["institution"]}
+    return {"degree": _fix_abbrev_missing_dot(e["degree"]), "institution": e["institution"]}
 
 
 def build_education_entries(education):
