@@ -40,11 +40,12 @@ Las columnas 19-20 son las que convierten este log en el instrumento de medició
 
 Una sola fila por candidato procesado (éxito o error), escrita al final de Módulo 3 (o apenas se detecta el error, en las ramas de falla). **Nunca en lote** — la cuota de Google Sheets (60 lecturas/min por usuario) ya se agotó una vez en Fase 1 con volumen mucho mayor; aquí el volumen es bajo (un candidato a la vez desde el poller), así que no debería repetirse, pero se escribe con `executeOnce` y sin reintentos automáticos (`retryOnFail: false`) para no duplicar filas.
 
-## Pendiente — crear el Sheet real
+## Sheet real — creado (11 ago 2026)
 
-No lo creé todavía. Dos formas de hacerlo, a elección:
+Creado vía workflow temporal en n8n (credencial `vuAQyDYC5NJboIEW`, cuenta `fitsscreening@gmail.com`), con 21 columnas (las 20 de este diseño + `recruiterEmail`, agregada por el cambio de correo grupal → notificación individual, ver `../Decisiones.md`).
 
-1. **Tú lo creas manualmente** en Drive con la cuenta `fitsscreening@gmail.com`, con estas 20 columnas como encabezado, y me pasas el Sheet ID.
-2. **Se crea desde N8N** con un nodo Google Sheets temporal usando la credencial `vuAQyDYC5NJboIEW` ya existente (evita que yo necesite acceso a esa cuenta de Google).
+- **Spreadsheet ID:** `1EM7GeQ7AePoMyngzDsRgMgnjj85K_pIoqfa1u4ukAo4`
+- **Pestaña:** `Sheet1` (no `Log` — quedó con el nombre por defecto, cosmético, no afecta la función)
+- **URL:** `https://docs.google.com/spreadsheets/d/1EM7GeQ7AePoMyngzDsRgMgnjj85K_pIoqfa1u4ukAo4/edit`
 
-No lo genero con mi propia sesión de Google Drive porque quedaría bajo una cuenta distinta a `fitsscreening@gmail.com`, rompiendo el punto de reusar la credencial ya provista en N8N.
+El workflow temporal usado para crearlo se eliminó tras la verificación.

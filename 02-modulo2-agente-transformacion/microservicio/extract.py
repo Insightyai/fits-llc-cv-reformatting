@@ -44,6 +44,8 @@ def _sniff_kind(data: bytes) -> str:
         return "pdf"
     if data[:2] == b"PK":
         return "docx"
+    if data[:8] == b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1":
+        return "legacy_doc"
     return "text"
 
 
@@ -91,6 +93,11 @@ def _sanitize(text: str) -> str:
 
 def extract_text(filename: str, data: bytes) -> ExtractResult:
     kind = _sniff_kind(data)
+
+    if kind == "legacy_doc":
+        raise ExtractionError(
+            "CORRUPT_FILE", f"{filename}: formato .doc legacy (binario, pre-2007) no soportado, se requiere PDF o DOCX"
+        )
 
     try:
         if kind == "pdf":

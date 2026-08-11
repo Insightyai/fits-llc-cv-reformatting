@@ -1,12 +1,13 @@
 # Módulo 3 — Entrega al Equipo
 
-**Estado:** No iniciado — bloqueado por el sitio de SharePoint
+**Estado:** Construido e integrado al Processor de Fase 6 (11 ago 2026), en modo piloto — la notificación al reclutador queda retenida hasta que Santiago revise 3–5 CVs reales generados. Detalle completo en `../Decisiones.md` (11 ago 2026) y `../seguimiento/bitacora.md`.
 
 ## Alcance
 
 - Generación del CV transformado en .docx editable, para que el reclutador pueda hacer ajustes finales antes de enviarlo al cliente
 - Almacenamiento automático en el sitio de SharePoint del proyecto
-- Email automático al correo grupal del equipo con el CV adjunto y enlace directo al archivo
+- **Cambio de alcance (11 ago 2026, pedido por FITS):** en vez de un correo grupal, notificación automática al reclutador asignado del candidato en JazzHR (vía `job.hiringLeadAccountId` → email), con fallback a `reclutamiento@fitspr.com` si no se puede resolver. El email incluye el link a SharePoint, no el .docx adjunto (ver justificación en `../Decisiones.md`). El contrato firmado todavía dice "correo grupal" — queda anotado como desviación de alcance, no gestionada como adenda formal.
+- **Estructura de carpetas en SharePoint:** una subcarpeta por candidato dentro de `Resumes/`, nombrada `{NombreCandidato} ({candidateId})` — el `candidateId` evita colisiones entre candidatos con el mismo nombre. Dentro de cada carpeta, un archivo por formato (`New Format.docx`, etc.). La carpeta se crea automáticamente si no existe antes de subir el archivo.
 
 ## Nota sobre el destino de almacenamiento
 

@@ -172,6 +172,18 @@
 
 **Verificación:** 69 tests no-`llm` en verde (`test_blocks.py` nuevo, `test_dates.py`/`test_grounding.py` con casos nuevos para el período nulo y la agrupación por empresa) + smoke test 6/6 (3 templates × 2 fixtures) + 3 renders de muestra armados a mano a partir del texto real de Kenneth (New Format), Edgeliz (BD, caso de 2 roles) y Andrea (Non Template) para revisión visual de Santiago en Word — sin gastar llamadas a Claude, porque lo que se está verificando es maquetación, no la transformación del agente. Detalle técnico completo (nombres de función, estructura del JSON) en `templates/TAG-CONTRACT.md`.
 
+### 11 Ago 2026 — Módulo 3: correo grupal reemplazado por notificación al reclutador asignado
+
+**Contexto:** El contrato firmado (`00-contrato/Contrato.md`) especifica literalmente "email automático al correo grupal del equipo" como criterio de aceptación de Módulo 3. En esta sesión, Santiago comunicó que FITS no quiere un correo grupal — quieren que el sistema notifique directamente al reclutador asignado del candidato/job en JazzHR.
+
+**Decisión:** Se implementa notificación individual al reclutador asignado en vez de correo grupal. Técnicamente, reutiliza el patrón ya probado en producción por Fase 1 (AI Screening): `job.hiringLeadAccountId` (API interna `api.jazz.co/job/{jobId}`) → `GET /v1/users/{id}` (API pública) → `.email`, con fallback a `reclutamiento@fitspr.com` si la búsqueda falla. Esto desvía del texto literal del contrato firmado — queda anotado aquí para trazabilidad; no se gestionó una adenda formal, dado que es una mejora pedida directamente por el cliente (notificación dirigida en vez de un correo grupal que cualquiera podía ignorar), no una reducción de alcance.
+
+**Simplificaciones de implementación (decisión de Santiago vía Claude, no confirmadas con FITS):**
+- El email de notificación incluye únicamente el link a SharePoint, no adjunta el `.docx` — evita la complejidad de propagar el binario del render a través de varios nodos intermedios (fetch de datos del job/reclutador) y reduce la exposición de PII de candidatos en bandejas de entrada de email.
+- La pestaña del Sheet de log quedó con el nombre por defecto `Sheet1` en vez de `Log` (el nombre no afecta la función, es cosmético).
+
+**Modo piloto:** a pedido explícito de Santiago, el envío de la notificación queda detrás de un interruptor manual (nodo `Config Piloto` en el Processor, `EMAIL_ENABLED: false` por defecto) — el pipeline completo corre igual (transformación, render, subida a SharePoint, registro en el log de Sheets), pero la notificación al reclutador se retiene hasta que Santiago revise manualmente entre 3 y 5 CVs reales generados y confirme que la calidad es aceptable. Cuando esté listo, se cambia ese valor a `true` vía la API de n8n. Resuelve el punto pendiente "[ ] Paso de revisión humana antes del envío grupal" de la lista de abajo — la resolución final fue un gate manual de arranque, no un gate por-candidato permanente.
+
 ---
 
 ## Decisiones Pendientes
@@ -183,7 +195,7 @@
 - [x] Cargar y probar credencial de SharePoint en N8N — resuelto: `SharePoint - CV Reformatting (Graph API)` funcionando
 - [x] Reutilizar la credencial Anthropic de Fase 1 (`P3oMjAzU63IfOAff` en `../../fits-llc/`) o provisionar una nueva — resuelto: se reutiliza la de Fase 1
 - [ ] Set de 15–20 CVs reales para las pruebas de aceptación del Módulo 2 (más allá del CV de prueba ya recibido, ver `02-modulo2-agente-transformacion/cvs-prueba/`)
-- [ ] Paso de revisión humana antes del envío grupal — confirmar con Paola/Jeremy si se quiere o si la entrega automática es aceptable
+- [x] Paso de revisión humana antes del envío — resuelto: modo piloto manual (`EMAIL_ENABLED` en el Processor), ver entrada del 11 ago 2026. No es un gate por-candidato permanente, solo para el arranque.
 - [ ] Criterio real de cálculo de `years_experience` — suma de períodos vs. lo declarado por el candidato (ver `agente/CONTRATO-AGENTE.md`, criterio v1 en uso mientras tanto)
 - [ ] Estilo de tercera persona: impersonal verbo-primero (v1 en uso) vs. con pronombre "He/She"
 - [ ] Si `REVIEW_BLOCKS_DELIVERY` (agente de transformación) puede pasar a `false` una vez medida la tasa de falsos positivos/negativos con CVs reales

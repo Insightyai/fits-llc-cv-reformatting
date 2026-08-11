@@ -53,7 +53,7 @@ Formato en `_meta.warnings`: `"CODIGO: detalle en español"`. No se agregan cód
 | `SUMMARY_CLAIM_NOT_VERIFIED` | Un sustantivo propio o término de industria del `summary` no aparece en la fuente (grounding suave, no bloquea — ver Fase 3) |
 | `METRIC_NOT_VERIFIED` | Un número/porcentaje/monto de un bullet no aparece en la fuente, pero `_meta.translated == true` — degradado de error a warning porque la Regla 1 puede convertir numerales escritos en palabras a dígitos |
 
-`NO_TEXT_LAYER` y `CORRUPT_FILE` no son warnings: son condiciones de `failed` que se detectan en `extract.py` **antes** de llamar al LLM — nunca se gasta una llamada a Claude sobre un archivo vacío o corrupto. `NO_TEXT_LAYER`: CV escaneado/imagen sin capa de texto (fuera de alcance contractual, ver PRD §4). `CORRUPT_FILE`: el archivo no se pudo parsear como PDF/DOCX (truncado, dañado).
+`NO_TEXT_LAYER` y `CORRUPT_FILE` no son warnings: son condiciones de `failed` que se detectan en `extract.py` **antes** de llamar al LLM — nunca se gasta una llamada a Claude sobre un archivo vacío o corrupto. `NO_TEXT_LAYER`: CV escaneado/imagen sin capa de texto (fuera de alcance contractual, ver PRD §4). `CORRUPT_FILE`: el archivo no se pudo parsear como PDF/DOCX (truncado, dañado), o es un formato no soportado (ej. `.doc` legacy, binario pre-2007 — detectado por firma OLE2/CFB desde el 11 ago 2026, ver `seguimiento/bitacora.md`).
 
 ## Fase 3 — Grounding check (`grounding.py`)
 

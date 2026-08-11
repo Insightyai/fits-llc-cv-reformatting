@@ -95,6 +95,16 @@ def test_corrupt_docx():
     assert exc_info.value.code == "CORRUPT_FILE"
 
 
+def test_legacy_doc_rejected():
+    # firma OLE2/CFB real de un .doc binario (formato Word pre-2007) descargado de un
+    # candidato real de FITS: sin esta deteccion, cae al fallback de texto plano
+    # (utf-8 errors="replace") y produce basura decodificable que el LLM alucina como CV real.
+    data = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + b"\x00" * 500
+    with pytest.raises(ExtractionError) as exc_info:
+        extract_text("resume.doc", data)
+    assert exc_info.value.code == "CORRUPT_FILE"
+
+
 def test_source_truncated():
     long_text = "word " * 10000  # ~50000 chars, arriba de MAX_CHARS
     data = long_text.encode("utf-8")
