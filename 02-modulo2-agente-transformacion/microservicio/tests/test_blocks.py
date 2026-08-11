@@ -3,6 +3,7 @@ from blocks import (
     build_education_entries,
     build_experience_companies,
     build_new_format_context,
+    format_period_for_display,
 )
 
 
@@ -75,8 +76,8 @@ def test_non_consecutive_same_company_not_grouped():
     ]
     companies = build_experience_companies(experience)
     assert len(companies) == 3
-    assert companies[0]["header"] == "Acme\tJan 2024 – Present"
-    assert companies[2]["header"] == "Acme\tJan 2020 – Dec 2022"
+    assert companies[0]["header"] == "Acme\tJan. 2024 – Present"
+    assert companies[2]["header"] == "Acme\tJan. 2020 – Dec. 2022"
 
 
 def test_missing_period_omits_period_from_header():
@@ -94,9 +95,9 @@ def test_multi_role_company_with_missing_periods_role_header_has_no_parens():
         job("Acme", "Role B", "Jan 2020 - Dec 2021", ["b"]),
     ]
     companies = build_experience_companies(experience)
-    assert companies[0]["header"] == "Acme\tJan 2020 - Dec 2021"
+    assert companies[0]["header"] == "Acme\tJan. 2020 - Dec. 2021"
     assert companies[0]["roles"][0]["header"] == "Role A"
-    assert companies[0]["roles"][1]["header"] == "Role B (Jan 2020 - Dec 2021)"
+    assert companies[0]["roles"][1]["header"] == "Role B (Jan. 2020 - Dec. 2021)"
 
 
 def test_new_format_context_uses_experience_companies():
@@ -128,7 +129,25 @@ def test_bd_format_context_drops_skills_from_summary():
     context = build_bd_format_context(cv)
     assert "skills_items" not in context
     assert context["town"] == "Mayagüez, PR"
-    assert context["experience_companies"][0]["header"] == "Acme\tJan 2020 - Dec 2021"
+    assert context["experience_companies"][0]["header"] == "Acme\tJan. 2020 - Dec. 2021"
+
+
+def test_format_period_adds_dot_after_month_abbreviations():
+    # canon de Paola (Yanina): "Jan. 2021 - Dec. 2025", nunca "May." (ya es palabra completa)
+    assert format_period_for_display("Jan 2021 - Dec 2025") == "Jan. 2021 - Dec. 2025"
+    assert format_period_for_display("May 2026 – Jul. 2026") == "May 2026 – Jul. 2026"
+    assert format_period_for_display("Sept 2023 - Present") == "Sept. 2023 - Present"
+    assert format_period_for_display(None) is None
+
+
+def test_multi_role_header_uses_dotted_period():
+    experience = [
+        {"company": "UPR", "title": "Role A", "location": None, "period": "Jan 2021 - Dec 2022", "bullets": ["a"]},
+        {"company": "UPR", "title": "Role B", "location": None, "period": "Jan 2023 - Dec 2024", "bullets": ["b"]},
+    ]
+    companies = build_experience_companies(experience)
+    assert "Jan. 2021 – Dec. 2024" in companies[0]["header"]
+    assert companies[0]["roles"][0]["header"] == "Role A (Jan. 2021 - Dec. 2022)"
 
 
 def test_education_entries_split_degree_institution_no_period():

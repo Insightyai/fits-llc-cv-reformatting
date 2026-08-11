@@ -1,4 +1,17 @@
+import re
+
 from dates import combine_periods
+
+_MONTH_ABBR_RE = re.compile(r"\b(Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\b(?!\.)")
+
+
+def format_period_for_display(period):
+    """Agrega punto tras abreviaturas de mes (canon de Paola: 'Jan. 2021 - Dec. 2025'),
+    nunca cambia el contenido semantico de la fecha -- solo puntuacion, aplicado
+    despues de que grounding.py ya valido el periodo crudo."""
+    if not period:
+        return period
+    return _MONTH_ABBR_RE.sub(lambda m: m.group(0) + ".", period)
 
 
 def format_education_item(e):
@@ -47,14 +60,14 @@ def build_experience_companies(experience):
             header += f", {first['location']}"
         period = combine_periods([r.get("period") for r in roles])
         if period:
-            header += f"\t{period}"
+            header += f"\t{format_period_for_display(period)}"
 
         multi_role = len(roles) > 1
         role_entries = []
         for r in roles:
             role_header = r["title"]
             if multi_role and r.get("period"):
-                role_header += f" ({r['period']})"
+                role_header += f" ({format_period_for_display(r['period'])})"
             role_entries.append({"header": role_header, "bullets": list(r["bullets"])})
 
         result.append({"header": header, "roles": role_entries})
