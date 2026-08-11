@@ -81,6 +81,63 @@ def _to_index(year_month):
     return year * 12 + (month - 1)
 
 
+def _split_period_tokens(period):
+    """Devuelve (start_token, end_token) crudos (texto tal como vino), o None si no
+    tiene la forma 'X - Y'. No parsea los tokens -- eso lo hace _parse_token aparte."""
+    normalized = period.replace("–", "-").replace("—", "-")
+    normalized = re.sub(r"\bto\b", "-", normalized, flags=re.IGNORECASE)
+    parts = [p.strip() for p in normalized.split("-", 1)]
+    if len(parts) != 2 or not parts[0] or not parts[1]:
+        return None
+    # Los tokens crudos se toman del period original (no del normalizado), para
+    # conservar el guion/en-dash tal como estaba en la fuente.
+    raw = period.strip()
+    for sep in ("–", "—", "-"):
+        if sep in raw:
+            idx = raw.index(sep)
+            return raw[:idx].strip(), raw[idx + 1 :].strip()
+    return None
+
+
+def combine_periods(periods):
+    """Combina los periodos (texto libre) de varios roles en la misma empresa en un
+    unico periodo de texto libre: el inicio mas temprano y el fin mas tardio, con el
+    texto crudo de cada extremo (nunca reformatea a un formato canonico). None si
+    ninguno de los periodos es interpretable. Ignora entradas None (period sin fecha
+    en la fuente)."""
+    present = [p for p in periods if p]
+    if not present:
+        return None
+    if len(present) == 1:
+        return present[0]
+
+    best_start = None  # (index, raw_token)
+    best_end = None  # (index, raw_token, is_present)
+    for period in present:
+        tokens = _split_period_tokens(period)
+        if tokens is None:
+            continue
+        start_raw, end_raw = tokens
+        start_parsed = _parse_token(start_raw)
+        if start_parsed is None or start_parsed == "present":
+            continue
+        start_idx = _to_index((start_parsed[0], start_parsed[1]))
+        if best_start is None or start_idx < best_start[0]:
+            best_start = (start_idx, start_raw)
+
+        end_parsed = _parse_token(end_raw)
+        if end_parsed is None:
+            continue
+        is_present = end_parsed == "present"
+        end_idx = float("inf") if is_present else _to_index((end_parsed[0], end_parsed[1]))
+        if best_end is None or end_idx > best_end[0] or (end_idx == best_end[0] and is_present):
+            best_end = (end_idx, end_raw, is_present)
+
+    if best_start is None or best_end is None:
+        return present[0]
+    return f"{best_start[1]} – {best_end[1]}"
+
+
 def calculate_years_experience(experience, now):
     """Devuelve (valor: str|None, warnings: list[str]). Nunca inventa un numero:
     si algun periodo no parsea, valor=None + YEARS_EXPERIENCE_UNKNOWN."""

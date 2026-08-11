@@ -156,6 +156,22 @@
 
 **Resultado de la corrida completa:** 4/4 CVs sintéticos en verde (`ok`/`review`, nunca `failed`), tiempos de transformación entre 10s y 25s — muy por debajo del presupuesto interno de 60s y del criterio de 3 minutos punta a punta del PRD (que todavía no se puede medir completo porque Fase 6 no está wireada).
 
+### 11 Ago 2026 — Ajustes de maquetación por CVs canon de Paola (bullets, header de experiencia, estructura por formato)
+
+**Contexto:** reunión de Paola con Santiago — FITS quiere que los 3 formatos generados queden exactamente iguales (texto, títulos, forma, tipo de bullet) a 6 CVs canon que Paola aprobó a mano (2 por formato, en `02-modulo2-agente-transformacion/cvs-canon/`, no versionados por tener datos de candidatos reales). Comparación carácter por carácter (extracción raw de los PDF, no solo visual) contra los 3 templates activos.
+
+**Decisiones tomadas (Santiago, en la sesión):**
+- **Bullet por formato:** New Format usa viñeta nativa de Word (Wingdings, `U+F02D`, confirmado por extracción raw de los canon de Kenneth/Yanina) — requirió agregar una definición de numeración nueva a los 3 `.docx` en vez de reusar el bullet redondo default de Word. Non Template y BD usan guion simple `"- "` como texto literal. Los 2 ejemplos canon de Non Template no coincidían entre sí en el tipo de guion (Aneira `"-"`, Andrea `"−"` más largo) — se eligió `"-"` por default, sin confirmar con Paola (queda como supuesto, no como hecho confirmado).
+- **Header de experiencia:** se descubrió que los 6 canon (los 3 formatos) usan un patrón universal de 2 líneas (empresa+período en negrita con tab a la derecha, rol en negrita en la línea siguiente) en vez de la línea única que generaba el microservicio hasta ahora. Cuando un candidato tuvo 2+ roles seguidos en la misma empresa sin haberse ido (caso real: Edgeliz Ramos Rosario en Fresenius Kabi), se agrupan en un solo bloque con el período total en la línea de empresa. Implementado en `blocks.build_experience_companies()` + `dates.combine_periods()`, sin cambios de schema.
+- **`experience[].period` pasa a ser nullable:** el canon de Edward Cruz Vega (BD) tiene 4 experiencias sin ninguna fecha en el CV original — antes el schema forzaba un string no-nulo, lo que arriesgaba que el agente inventara un período. `grounding.py` ya degradaba esto a warning (`EMPTY_PERIOD`) antes del cambio; el ajuste fue de schema/prompt, no de lógica de grounding.
+- **BD Format:** se quitó la frase `"Resides in {{ town }}."` (redundante — la localidad ya vivía como línea propia bajo el nombre) y se eliminó por completo la lista de skills dentro de `Summary of Skills` (ningún ejemplo canon la muestra). Títulos `"Summary of Skills"` / `"Professional Experience"` ganan dos puntos.
+- **New Format:** se reordenó `SKILLS` para que vaya antes de la sección de certificaciones (antes al revés), y se renombró el título de certificaciones a `"CERTIFICATIONS & TRAININGS"` (de paso corrige un typo viejo, "LINCENSES"). **No se implementó** `CORE COMPETENCIES` ni `TECHNICAL & PROFESSIONAL SKILLS` con subtítulos por categoría (presentes solo en el canon de Kenneth, no en el de Yanina) — se adoptó la estructura de Yanina como estándar único. Tampoco se implementó partir la experiencia en `ADDITIONAL EXPERIENCE` (presente solo en el canon de Yanina) — decisión explícita: nunca partir automáticamente.
+- **Non Template:** se dejó fuera de esta ronda un hallazgo más grande — los 2 ejemplos canon (Aneira, Andrea) tienen secciones completamente distintas entre sí y del template fijo actual, lo que sugiere que "Non Template" podría significar secciones variables por candidato (reflejando el CV original) en vez de un template con tags fijos. Decisión explícita de Santiago: mantener el template fijo actual, confirmar con Paola antes de encarar ese cambio de arquitectura más grande.
+
+**Pendiente de confirmar con Paola (no asumido en esta ronda):** tipo de guion exacto para Non Template; si "Non Template" debe tener secciones variables por candidato; si `CORE COMPETENCIES`/`TECHNICAL & PROFESSIONAL SKILLS`/`ADDITIONAL EXPERIENCE` del canon de Kenneth/Yanina son casos puntuales o deberían soportarse como secciones opcionales en algún momento.
+
+**Verificación:** 69 tests no-`llm` en verde (`test_blocks.py` nuevo, `test_dates.py`/`test_grounding.py` con casos nuevos para el período nulo y la agrupación por empresa) + smoke test 6/6 (3 templates × 2 fixtures) + 3 renders de muestra armados a mano a partir del texto real de Kenneth (New Format), Edgeliz (BD, caso de 2 roles) y Andrea (Non Template) para revisión visual de Santiago en Word — sin gastar llamadas a Claude, porque lo que se está verificando es maquetación, no la transformación del agente. Detalle técnico completo (nombres de función, estructura del JSON) en `templates/TAG-CONTRACT.md`.
+
 ---
 
 ## Decisiones Pendientes
@@ -171,6 +187,9 @@
 - [ ] Criterio real de cálculo de `years_experience` — suma de períodos vs. lo declarado por el candidato (ver `agente/CONTRATO-AGENTE.md`, criterio v1 en uso mientras tanto)
 - [ ] Estilo de tercera persona: impersonal verbo-primero (v1 en uso) vs. con pronombre "He/She"
 - [ ] Si `REVIEW_BLOCKS_DELIVERY` (agente de transformación) puede pasar a `false` una vez medida la tasa de falsos positivos/negativos con CVs reales
+- [ ] Confirmar con Paola el tipo de guion exacto de Non Template (se usó `"-"` simple por default el 11 ago, sin confirmar — ver `templates/TAG-CONTRACT.md`)
+- [ ] Confirmar con Paola si "Non Template" debe tener secciones variables por candidato (reflejando el CV original) en vez del template fijo actual — hallazgo del 11 ago, no resuelto
+- [ ] Confirmar con Paola si `CORE COMPETENCIES` / `TECHNICAL & PROFESSIONAL SKILLS` con subtítulos / `ADDITIONAL EXPERIENCE` (presentes en el canon de Kenneth/Yanina pero no implementados el 11 ago) deberían soportarse como secciones opcionales de New Format
 - [ ] Qué hacer si el grounding de `skills[]` bloquea seguido CVs reales sin sección explícita de habilidades — ver hallazgo de Fase 5 (30 jul 2026): prompt que deje `skills: []` vacío vs. relajar `grounding.py` a warning como `title`/`institution`
 - [x] Confirmar en cuáles workflows de JazzHR se habilita el/los nuevo(s) stage(s) — resuelto: 10 workflows, mapeo exacto arriba
 - [x] Corregir etapa mal nombrada en JNJ - Workflow 2024 (`Convert Resume - Worksense` → `Convert Resume - Non Template`) — resuelto 28 jul 2026, verificado vía API

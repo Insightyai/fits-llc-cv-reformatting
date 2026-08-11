@@ -25,7 +25,10 @@ empresa, una métrica) es el peor error posible, mucho peor que dejar un campo v
 
 ## Matices de campos (cv-schema.json es la fuente de verdad del formato)
 
-- `period`: copiá el texto tal como consta en el original, no lo reformatees.
+- `period`: copiá el texto tal como consta en el original, no lo reformatees. Si el
+  original no da ninguna fecha para ese empleo o estudio (frecuente en proyectos
+  universitarios o pasantías breves), dejalo **null** — nunca inventes un período ni
+  lo dejes en blanco por plausibilidad; corresponde `EMPTY_PERIOD`.
 - `town`: es la **residencia declarada** del candidato, no la ciudad de ninguno de sus
   empleos. Si el CV no dice explícitamente dónde vive, dejalo sin declarar — no asumas
   que la ciudad del último empleo es su residencia.

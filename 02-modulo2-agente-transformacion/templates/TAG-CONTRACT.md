@@ -3,6 +3,8 @@
 > Especificación definitiva de los tags Jinja2/`docxtpl` para los 3 templates activos (New Format, Non Template, BD Format). Reemplaza los tags de `MAPEO-PLACEHOLDERS.md` y de los `.docx` en `anotados/` (anotados el 28 jul con tags simples `{{ }}`) — ambos quedan como referencia histórica, no como fuente de verdad. Los `.docx` reales se re-anotan en Fase 2 siguiendo este documento.
 >
 > **Motivo del reemplazo:** la auditoría de Opus (28 jul 2026, ver `Decisiones.md` y `seguimiento/bitacora.md`) encontró que los tags simples `{{ for %}{{ }}{% endfor %}` no son compatibles con la técnica de render multilínea (`RichText`) — generan un párrafo vacío sin error, o concatenan todo el contenido en una sola línea sin separación. Este documento fue validado con renders reales (`docxtpl` 0.20.2) antes de escribirse — ver evidencia al final.
+>
+> **Corrección (11 ago 2026):** las secciones "Regla general" y "Regla de bloques multilínea" de más abajo describen el diseño de `RichText` del spike de Fase 2, pero **no es lo que terminó implementado** — los 3 `.docx` reales en `anotados/` usan `{% for %}...{% endfor %}` escrito directamente en el `.docx`, con cada tag Jinja en su propio párrafo (loop a nivel de párrafo, no inline dentro de un mismo párrafo). Resulta que `docxtpl` sí repite el párrafo completo por cada iteración cuando el loop vive a nivel de párrafo — el problema que el spike de `RichText` evitaba era específico de loops *inline* dentro de un mismo párrafo, no de loops a nivel de párrafo. La sangría francesa y los tab stops sobreviven igual. Se deja la sección original como referencia histórica de por qué se descartó la sintaxis simple `{{ }}`, pero la arquitectura real de bullets/loops es la de "Regla de negocio (11 ago 2026)" más abajo.
 
 ## Regla general: dos tipos de tag, sin excepciones
 
@@ -79,39 +81,60 @@ Confirmado que un `full_name` con caracteres no-ASCII (ej. "José Ramón Martín
 
 ---
 
-## Tabla de tags — New Format Resume Template.docx / Non Template Resume.docx
+## Regla de negocio (11 ago 2026): bullets, header de experiencia y estructura por formato
 
-Comparten estructura (ver `conocimiento/anatomia-templates.md`). Mismo mapeo para ambos.
+Confirmado por Paola vía 6 CVs canon (2 por formato, en `02-modulo2-agente-transformacion/cvs-canon/`) — reemplaza el diseño original de `{{r }}` con `RichText` descripto más abajo, que en la implementación final terminó resuelto con **loops nativos de Jinja a nivel de párrafo** (`{% for %}...{% endfor %}`, cada tag en su propio párrafo del `.docx`): `docxtpl` sí repite correctamente el párrafo por cada iteración cuando el loop vive a nivel de párrafo completo (a diferencia de un loop inline dentro de un mismo párrafo, que es el caso que el spike original de `RichText` estaba evitando). La sangría francesa y los tab stops sí sobreviven el render igual, sean párrafos repetidos por Jinja o `RichText`.
+
+**Bullet por formato** (confirmado por extracción raw a nivel de carácter de los PDF canon, no solo visual):
+- **New Format:** viñeta nativa de Word (`w:numPr`), fuente `Wingdings`, carácter `U+F02D` — implementada como definición de numeración propia (`numId` dedicado) en `templates/anotados/New Format Resume Template.docx`, nunca como texto literal.
+- **Non Template:** guion simple `"- "` como texto literal (default elegido por Santiago; los 2 ejemplos de Paola no coincidían entre sí — Aneira usaba `"-"`, Andrea `"−"` más largo — y "Non Template" implica menor estandarización).
+- **BD Format:** guion simple `"- "` como texto literal (confirmado por los 2 ejemplos, consistente).
+
+**Header de experiencia — patrón universal, agrupado por empresa (los 3 formatos):** cada bloque de experiencia va en 2 líneas, no 1:
+1. Línea de empresa (negrita, con tab stop derecho a 6.5"): `"{{ company.header }}"` = `"{empresa}[, {location}]"` + `"\t"` + período **solo si hay dato** (nunca imprime un tab colgante ni `"None"`).
+2. Línea de rol (negrita, sin tab stop) por cada rol agrupado bajo esa empresa: `"{{ role.header }}"` = `"{title}"`, o `"{title} ({period})"` cuando hay 2+ roles agrupados (el período individual del rol solo se muestra ahí, nunca en la línea de empresa si hay un solo rol).
+
+Cuando un candidato tuvo 2+ roles consecutivos en la misma empresa sin haberse ido entremedio (caso real: Edgeliz Ramos Rosario en Fresenius Kabi, canon BD), se agrupan en un solo bloque: la línea de empresa lleva el período **total** (inicio más temprano, fin más tardío, texto crudo preservado — ver `dates.combine_periods`), y cada rol lleva su propio período entre paréntesis. Empresas no consecutivas (el candidato volvió después de trabajar en otro lado) nunca se agrupan — son bloques separados aunque el nombre de empresa coincida.
+
+Esto lo arma `blocks.build_experience_companies()` en Python (nunca en el `.docx` ni por el LLM) — devuelve `experience_companies: [{header, roles: [{header, bullets}]}]`, reemplazando el `experience_jobs` plano original.
+
+`experience[].period` es **nullable** desde el 11 ago 2026 (antes era obligatorio) — CVs reales sin fechas para un proyecto/pasantía (caso real: Edward Cruz Vega, canon BD, 4 de sus experiencias sin fecha en el original) no deben forzar al agente a inventar una. `grounding.py` ya degradaba esto a warning (`EMPTY_PERIOD`), no a error, antes de este cambio — el ajuste fue solo de schema/prompt, no de lógica de grounding.
+
+## Tabla de tags — New Format Resume Template.docx
 
 | Sección | Tag |
 |---|---|
 | Header — nombre | `{{ full_name }}` |
 | Header — años de experiencia | `{% if years_experience %}{{ years_experience }}+ YRS. OF EXP.{% endif %}` |
-| EDUCATION | `{{r education_block }}` |
+| EDUCATION | `{% for item in education_items %}` / `{{ item }}` (viñeta nativa) / `{% endfor %}` |
 | SUMMARY OF QUALIFICATIONS | `{{ summary }}` |
-| PROFESSIONAL EXPERIENCE | `{{r experience_block }}` |
-| LICENSES, TRAININGS & CERTIFICATIONS | `{{r certifications_block }}` |
-| SKILLS | `{{r skills_block }}` |
-| Footer (solo New Format) | `{{ full_name }}` |
+| PROFESSIONAL EXPERIENCE | `{% for company in experience_companies %}` → `{{ company.header }}` → `{% for role in company.roles %}` → `{{ role.header }}` → `{% for b in role.bullets %}` → `{{ b }}` (viñeta nativa) → 3x `{% endfor %}` |
+| SKILLS | `{% for item in skills_items %}` / `{{ item }}` (viñeta nativa) / `{% endfor %}` — **va antes** de certificaciones (orden confirmado por canon Kenneth/Yanina, invierte el orden original) |
+| CERTIFICATIONS & TRAININGS | `{% for item in certifications_items %}` / `{{ item }}` (viñeta nativa) / `{% endfor %}` — título renombrado (antes tenía un typo: "LINCENSES, TRAININGS & CERTIFICATIONS") |
+| Footer | `{{ full_name }}` |
 
-`education_block`: por ítem, `"{{ degree }}, {{ institution }}"` + `" ({{ period }})"` si `period` no es null; `<w:br/>` entre ítems.
-`certifications_block` / `skills_block`: por ítem, `"• " + valor`; `<w:br/>` entre ítems.
+**No implementado en esta ronda (decisión explícita de Santiago):** `CORE COMPETENCIES` antes de la experiencia y `TECHNICAL & PROFESSIONAL SKILLS` con subtítulos en negrita por categoría, ambos presentes en el canon de Kenneth pero no en el de Yanina — se adoptó la estructura de Yanina (más simple, sin esas 2 secciones) como estándar único de New Format. Tampoco se implementa partir la experiencia en una sección `ADDITIONAL EXPERIENCE` (presente en el canon de Yanina) — decisión explícita: nunca partir automáticamente, todo va en `PROFESSIONAL EXPERIENCE`.
+
+## Tabla de tags — Non Template Resume.docx
+
+Mismo mapeo de estructura fija que New Format (EDUCATION → SUMMARY OF QUALIFICATIONS → PROFESSIONAL EXPERIENCE → LICENSES, TRAININGS & CERTIFICATIONS → SKILLS), **sin reordenar ni renombrar secciones** — a diferencia de New Format, aquí no se tocó el orden/título de certificaciones ni skills. Único cambio: header de experiencia en 2 líneas agrupado por empresa (igual que los otros 2 formatos) y bullet `"- "` en vez de `"• "`.
+
+**Hallazgo importante, no resuelto en esta ronda:** los 2 ejemplos canon de Paola (Aneira, Andrea) tienen secciones completamente distintas entre sí y distintas de esta estructura fija (`TECHNICAL SKILLS`/`PROFESSIONAL SKILLS`/`LANGUAGES`/`CERTIFICATIONS & RELEVANT COURSEWORK` en uno, `EXTRACURRICULAR ACTIVITIES`/`RELEVANT PROJECTS`/`SOFT SKILLS` en el otro) — sugiere que "Non Template" podría significar secciones variables por candidato (reflejando el CV original), no un template fijo con tags predefinidos. Decisión explícita de Santiago (11 ago 2026): mantener el template fijo actual por ahora; confirmar con Paola antes de rearquitecturar esto a render dinámico de secciones (cambio de arquitectura más grande, fuera de alcance de esta ronda).
 
 ## Tabla de tags — BD - Resume Template.docx
 
 | Sección | Tag |
 |---|---|
 | Header — nombre | `{{ full_name }}` |
-| Header — localidad | `{% if town %}{{ town }}{% endif %}` |
-| Summary of Skills | `{{r summary_skills_block }}` |
-| Professional Experience | `{{r experience_block }}` (mismo patrón que New Format/Non Template) |
-| Education/Certifications/Licenses | `{{r education_certifications_block }}` |
+| Header — localidad | `{% if town %}{{ town }}{% endif %}` (línea propia debajo del nombre — **nunca** dentro del summary) |
+| Summary of Skills: | `{{ summary }}` — párrafo corrido, sin bullets (se quitó la lista de skills que fusionaba antes; BD no renderiza `skills[]`) |
+| Professional Experience: | mismo patrón de 3 niveles que New Format/Non Template (`experience_companies` → `roles` → `bullets`), bullet `"- "` |
+| Education/Certifications/Licenses | `{% for item in education_certifications_items %}` / `- {{ item }}` / `{% endfor %}` |
 
-`summary_skills_block` fusiona `summary` + regla especial BD (`town` dentro de esta sección, no en sección propia) + `skills`: párrafo de summary sin viñeta, seguido de `"Resides in {{ town }}."` si `town` no es null, seguido de cada skill con `"• "` y `<w:br/>`.
-
-`education_certifications_block` fusiona `education[]` + `certifications[]` en un solo bloque (mismo formato de ítem que `education_block`, seguido de los ítems de `certifications_block`).
-
-**Abierto para Fase 2 (no bloqueante):** `summary_skills_block` mezcla texto corrido (summary, sin viñeta) con una lista con viñeta (skills) dentro del mismo párrafo — la sangría francesa uniforme del párrafo podría verse rara aplicada al summary. Confirmar visualmente con Paola al re-anotar; si no convence, separar en dos tags/párrafos (`{{r summary_block }}` + `{{r skills_block }}`) en vez de fusionarlos en uno.
+Cambios de esta ronda vs. el diseño original:
+- **Localidad:** ya vivía como línea propia bajo el nombre en el `.docx` (el diseño original de este documento describía mal el comportamiento real). Lo que sí se quitó fue la frase redundante `"Resides in {{ town }}."` que aparecía **además**, dentro de `Summary of Skills` — el canon nunca la muestra.
+- **Skills:** se eliminó por completo de BD Format. Ningún ejemplo canon muestra una lista de skills con viñetas; `cv.skills` sigue existiendo en el JSON (se sigue extrayendo, por si se necesita en Módulo 3), pero `blocks.build_bd_format_context()` ya no lo pasa al contexto de render.
+- **Títulos:** `"Summary of Skills"` → `"Summary of Skills:"`, `"Professional Experience"` → `"Professional Experience:"` (dos puntos, confirmado por los 2 ejemplos canon). `"Education/Certifications/Licenses"` se mantiene sin dos puntos (tampoco los tiene en el canon).
 
 ---
 

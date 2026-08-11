@@ -54,8 +54,16 @@ def check(template_id, fixture_name, cv):
     for exp in cv["experience"]:
         for b in exp["bullets"]:
             assert b in full_text, f"bullet perdido: {b!r}"
-    for s in cv["skills"]:
-        assert s in full_text, f"skill perdida: {s!r}"
+
+    if template_id == "bd_format":
+        assert "Resides in" not in full_text, "BD Format ya no debe mostrar 'Resides in ...'"
+        # BD Format no renderiza skills_items (ver blocks.build_bd_format_context,
+        # cubierto por test_blocks.py) -- no se repite ese chequeo aca porque algunos
+        # skills adversariales (ej. "R&D") coinciden a proposito con texto del summary
+        # y de los bullets, y darian un falso positivo.
+    else:
+        for s in cv["skills"]:
+            assert s in full_text, f"skill perdida: {s!r}"
 
     print(f"  OK  {template_id:15s} + {fixture_name:16s} -> {len(raw)} bytes, sin tags sueltos, sin 'None', bullets intactos")
 

@@ -147,3 +147,32 @@ Errores de `ExtractionError`/`TransformError` se devuelven como `422` con `{"sta
 **Verificación con datos reales:** con la cookie de sesión de JazzHR pegada temporalmente por Santiago (usada solo en memoria de la sesión de terminal, nunca guardada en archivo), se confirmó que **ningún candidato está hoy sentado en ninguna de las 13 etapas de Convert Resume** (130 combinaciones job×step revisadas, 0 errores, 0 candidatos) — coherente con que las etapas se crearon recientemente (Módulo 1) y nadie las ha usado todavía. La prueba mecánica del worker se hizo entonces con un candidato real que sí tiene CV descargable (vía AI Screening) aunque no esté en esa etapa: confirmó que todo el pipeline mecánico funciona (JazzHR → n8n → Railway → Claude), y de paso reprodujo con datos reales de FITS por primera vez el riesgo ya anotado en la Fase 5 (`GROUNDING_FAILED` cuando el CV no trae Skills explícitas).
 
 **Estado al cierre de la sesión:** ambos workflows construidos, probados y **desactivados** a pedido de Santiago — se activan cuando FITS confirme que van a empezar a mover candidatos a las etapas Convert Resume. Credenciales nuevas creadas en `fits.app.n8n.cloud`: `CV Reformatting - Railway API Key` (id `2lvRPf8pQTIkmxUH`, header auth con el `API_KEY` del microservicio).
+
+### 6 ago 2026 — Fixes de robustez en el Convert Resume Poller/Processor
+
+Retomada la revisión de Fase 6 (todavía desactivada) para cerrar dos riesgos detectados al comparar `JazzHR - Convert Resume Poller` contra el patrón ya probado de `JazzHR - AI Screening Poller`:
+
+**1. Choque de scheduling entre los dos pollers.** El Convert Resume Poller corría con un trigger `Interval`, sin coordinación con el trigger del AI Screening Poller — riesgo de que ambos pollers golpearan la API de JazzHR al mismo tiempo (el mismo patrón de rate-limit 429 encontrado con `Fetch Projobs` el 4 ago). Corregido: trigger cambiado de `Interval` a `CronExpression` con ventana de 15 minutos, alineado al horario del AI Screening Poller. Nodo trigger renombrado para reflejar que dispara por cron, no por intervalo.
+
+**2. Riesgo de OOM (mismo síntoma que el incidente de julio, pero en el workflow nuevo).** El Convert Resume Poller no tenía límite de candidatos procesados por corrida — a diferencia del AI Screening Poller, que ya resuelve esto con `MAX_PER_CYCLE` (batch processing con throttling y deduplicación con estado). Corregido: se implementó el mismo mecanismo `MAX_PER_CYCLE` en el Convert Resume Poller, replicando el patrón de AI Screening. Se midió el tiempo de ejecución real del AI Screening Poller como referencia (rango 4.5–9.5 min) para confirmar que la ventana de 15 min del cron nuevo deja margen suficiente (328+ segundos de buffer en el peor caso).
+
+**3. Falta de manejo de errores.** Ni el Poller ni el Processor de Convert Resume tenían `ErrorWorkflow` configurado. Corregido: ambos workflows quedaron vinculados al workflow global `Error Alert Global` (mismo patrón de notificación por email que ya usa el resto de la instancia).
+
+**4. Política de retención de datos.** Se alineó el Convert Resume Poller al mismo criterio que el AI Screening Poller: no persistir las ejecuciones exitosas (solo errores), para evitar acumulación de datos en N8N Cloud.
+
+**Verificación de cierre:** con la API de JazzHR se revisaron de nuevo las 13 etapas Convert Resume en los 10 workflows (135 combinaciones job×step, 0 errores) — se confirma que sigue sin haber ningún candidato en esas etapas. El estado de fondo no cambió respecto al 4 ago: los fixes de esta sesión son preventivos, no una respuesta a una falla real detectada en producción. Ambos workflows **siguen desactivados**, a la espera de que el equipo de Paola empiece a usar las etapas Convert Resume.
+
+### 11 Ago 2026 — Ajustes de maquetación por CVs canon de Paola (bullets, header de experiencia, estructura por formato)
+
+Santiago se reunió con Paola: FITS pidió ajustes a los 3 formatos generados y envió 6 CVs canon (2 por formato) como estándar exacto a cumplir — cargados en `02-modulo2-agente-transformacion/cvs-canon/` (no versionados, tienen datos de candidatos reales). Se comparó carácter por carácter (extracción raw de los PDF, no solo visual) contra los 3 templates activos y `blocks.py`.
+
+**Cambios implementados** (detalle técnico completo en `templates/TAG-CONTRACT.md`, decisiones de negocio en `Decisiones.md`):
+- Bullet nativo de Word (Wingdings, `U+F02D`) en New Format; guion `"-"` literal en Non Template y BD.
+- Header de experiencia pasa de 1 línea a 2 (empresa+período con tab a la derecha / rol debajo), agrupando roles consecutivos en la misma empresa en un solo bloque con período total — nueva función `blocks.build_experience_companies()` + `dates.combine_periods()`.
+- `experience[].period` pasa a nullable en `cv-schema.json` (CVs reales sin fechas para un proyecto, ej. Edward Cruz Vega en BD, no deben forzar al agente a inventar una fecha).
+- BD Format: se quitó `"Resides in {{ town }}."` (redundante) y la lista de skills dentro de `Summary of Skills` (ningún ejemplo canon la trae); títulos con dos puntos.
+- New Format: `SKILLS` ahora va antes de certificaciones (antes al revés), y el título de certificaciones se corrige a `"CERTIFICATIONS & TRAININGS"` (de paso corrige un typo viejo, "LINCENSES").
+
+**Fuera de alcance de esta ronda, con decisión explícita de no implementar:** secciones `CORE COMPETENCIES` / `TECHNICAL & PROFESSIONAL SKILLS` con subtítulos / `ADDITIONAL EXPERIENCE`, presentes en uno de los 2 ejemplos canon de New Format (Kenneth) pero no en el otro (Yanina) — se adoptó la estructura de Yanina como estándar único. También se dejó sin resolver un hallazgo más grande: los 2 ejemplos canon de Non Template tienen secciones completamente distintas entre sí y del template fijo actual, lo que sugiere que "Non Template" podría requerir secciones variables por candidato en vez de tags fijos — decisión de Santiago: no rearquitecturar sin confirmar con Paola primero.
+
+**Verificación:** 69 tests no-`llm` en verde (TDD — tests escritos antes de `blocks.build_experience_companies()` y `dates.combine_periods()`) + smoke test 6/6 (3 templates × 2 fixtures) + 3 `.docx` de muestra renderizados a mano con texto real de Kenneth/Edgeliz/Andrea para revisión visual de Santiago en Word, sin gastar llamadas a Claude (lo que se verificaba era maquetación, no la transformación del agente).

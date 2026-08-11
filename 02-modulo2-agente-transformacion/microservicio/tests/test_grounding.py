@@ -59,6 +59,17 @@ def test_changed_year_is_error(clean_cv, source_text):
     assert any("GROUNDING_YEAR_NOT_FOUND" in e and "2018" in e for e in report.errors)
 
 
+def test_null_period_is_warning_not_error(clean_cv, source_text):
+    """period=None es valido cuando la fuente no trae fechas para esa experiencia
+    (ej. Edward Cruz Vega, canon BD) -- degrada a EMPTY_PERIOD (warning), nunca a
+    error ni crashea comparando None.strip()."""
+    cv = copy.deepcopy(clean_cv)
+    cv["experience"][0]["period"] = None
+    report = grounding.evaluate(cv, source_text)
+    assert report.errors == []
+    assert any(w.startswith("EMPTY_PERIOD") for w in report.warnings)
+
+
 def test_i_statement_bullet_is_error(clean_cv, source_text):
     cv = copy.deepcopy(clean_cv)
     cv["experience"][0]["bullets"][0] = "I managed environmental compliance reporting."

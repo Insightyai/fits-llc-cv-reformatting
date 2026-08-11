@@ -1,6 +1,6 @@
 from datetime import date
 
-from dates import calculate_years_experience
+from dates import calculate_years_experience, combine_periods
 
 NOW = date(2026, 7, 30)
 
@@ -81,3 +81,43 @@ def test_end_before_start_is_unknown():
     value, warnings = calculate_years_experience([job("Jan 2022 - Jan 2020")], NOW)
     assert value is None
     assert warnings[0].startswith("YEARS_EXPERIENCE_UNKNOWN")
+
+
+def test_null_period_makes_years_experience_unknown():
+    """period=None es valido desde que el schema lo permite (CV sin fechas) -- no
+    debe romper el calculo, solo degradar a YEARS_EXPERIENCE_UNKNOWN."""
+    experience = [job("Jan 2019 - Dec 2021"), job(None)]
+    value, warnings = calculate_years_experience(experience, NOW)
+    assert value is None
+    assert warnings[0].startswith("YEARS_EXPERIENCE_UNKNOWN")
+
+
+def test_combine_periods_fresenius_kabi_case():
+    """Caso real (Edgeliz Ramos Rosario, canon BD): dos roles en la misma empresa,
+    el mas nuevo con inicio mas tardio pero fin 'Present', el mas viejo con el inicio
+    mas temprano -- el periodo combinado toma el inicio mas temprano y el fin mas
+    tardio, preservando el texto crudo de cada extremo."""
+    combined = combine_periods(["Oct. 2023 – Present", "Feb. 2023 – Oct. 2023"])
+    assert combined == "Feb. 2023 – Present"
+
+
+def test_combine_periods_single_role_returns_as_is():
+    assert combine_periods(["Jan 2019 - Dec 2021"]) == "Jan 2019 - Dec 2021"
+
+
+def test_combine_periods_ignores_null_entries():
+    assert combine_periods([None, "Jan 2019 - Dec 2021", None]) == "Jan 2019 - Dec 2021"
+
+
+def test_combine_periods_all_null_is_none():
+    assert combine_periods([None, None]) is None
+
+
+def test_combine_periods_ignores_unparseable_entries():
+    combined = combine_periods(["sometime a while ago", "Jan 2019 - Dec 2021"])
+    assert combined == "Jan 2019 – Dec 2021"
+
+
+def test_combine_periods_all_unparseable_falls_back_to_first():
+    combined = combine_periods(["sometime a while ago", "who knows"])
+    assert combined == "sometime a while ago"

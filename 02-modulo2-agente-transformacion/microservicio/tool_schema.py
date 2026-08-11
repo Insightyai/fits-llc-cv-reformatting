@@ -10,8 +10,9 @@ TOOL_NAME = "emit_cv"
 
 def _union_to_anyof(node):
     """La API de tool use no soporta 'type': [...] (union). cv-schema.json lo usa en
-    los 4 campos nullable (town, years_experience, experience[].location,
-    education[].period) -- se convierte a anyOf, recursivamente en todo el schema."""
+    los campos nullable (town, years_experience, experience[].location,
+    experience[].period, education[].period) -- se convierte a anyOf, recursivamente
+    en todo el schema."""
     if isinstance(node, dict):
         if isinstance(node.get("type"), list):
             types = node.pop("type")

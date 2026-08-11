@@ -33,13 +33,13 @@
       "description": "Historial laboral, orden cronologico inverso (mas reciente primero) salvo que el original indique otro orden explicito.",
       "items": {
         "type": "object",
-        "required": ["company", "title", "period", "bullets"],
+        "required": ["company", "title", "bullets"],
         "additionalProperties": false,
         "properties": {
           "company": {"type": "string"},
           "title": {"type": "string"},
           "location": {"type": ["string", "null"]},
-          "period": {"type": "string", "description": "Texto libre tal como conste (ej. 'Jan 2019 - Present')."},
+          "period": {"type": ["string", "null"], "description": "Texto libre tal como conste (ej. 'Jan 2019 - Present'). null si el CV original no indica fechas para esta experiencia -- no inventar."},
           "bullets": {
             "type": "array",
             "items": {"type": "string"},

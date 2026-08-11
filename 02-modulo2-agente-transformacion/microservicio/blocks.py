@@ -1,3 +1,6 @@
+from dates import combine_periods
+
+
 def format_education_item(e):
     item = f"{e['degree']}, {e['institution']}"
     if e.get("period"):
@@ -9,15 +12,45 @@ def build_education_items(education):
     return [format_education_item(e) for e in education]
 
 
-def build_experience_jobs(experience):
-    jobs = []
+def _company_key(x):
+    return (x["company"], x.get("location"))
+
+
+def build_experience_companies(experience):
+    """Agrupa experience[] por empresa consecutiva (mismo patron en los 6 CVs canon
+    de Paola: un candidato con dos roles seguidos en la misma empresa, sin haberse ido
+    entremedio, se muestra como un solo encabezado de empresa -- con el periodo total
+    de la permanencia -- y un sub-encabezado en negrita por rol, con su propio periodo
+    entre parentesis solo cuando hay 2+ roles agrupados. Empresas no consecutivas
+    (el candidato volvio despues de trabajar en otro lado) no se agrupan."""
+    companies = []
     for x in experience:
-        header = f"{x['title']} — {x['company']}"
-        if x.get("location"):
-            header += f", {x['location']}"
-        header += f" ({x['period']})"
-        jobs.append({"header": header, "bullets": list(x["bullets"])})
-    return jobs
+        if companies and _company_key(companies[-1]["_source"][-1]) == _company_key(x):
+            companies[-1]["_source"].append(x)
+        else:
+            companies.append({"_source": [x]})
+
+    result = []
+    for company in companies:
+        roles = company["_source"]
+        first = roles[0]
+        header = first["company"]
+        if first.get("location"):
+            header += f", {first['location']}"
+        period = combine_periods([r.get("period") for r in roles])
+        if period:
+            header += f"\t{period}"
+
+        multi_role = len(roles) > 1
+        role_entries = []
+        for r in roles:
+            role_header = r["title"]
+            if multi_role and r.get("period"):
+                role_header += f" ({r['period']})"
+            role_entries.append({"header": role_header, "bullets": list(r["bullets"])})
+
+        result.append({"header": header, "roles": role_entries})
+    return result
 
 
 def build_new_format_context(cv):
@@ -26,7 +59,7 @@ def build_new_format_context(cv):
         "years_experience": cv.get("years_experience"),
         "summary": cv["summary"],
         "education_items": build_education_items(cv["education"]),
-        "experience_jobs": build_experience_jobs(cv["experience"]),
+        "experience_companies": build_experience_companies(cv["experience"]),
         "certifications_items": cv.get("certifications", []),
         "skills_items": cv["skills"],
     }
@@ -37,8 +70,7 @@ def build_bd_format_context(cv):
         "full_name": cv["full_name"],
         "town": cv.get("town"),
         "summary": cv["summary"],
-        "skills_items": cv["skills"],
-        "experience_jobs": build_experience_jobs(cv["experience"]),
+        "experience_companies": build_experience_companies(cv["experience"]),
         "education_certifications_items": build_education_items(cv["education"])
         + list(cv.get("certifications", [])),
     }
