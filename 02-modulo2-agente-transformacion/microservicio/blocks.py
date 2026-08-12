@@ -80,15 +80,17 @@ def build_experience_companies(experience):
         if first.get("location"):
             header += f", {first['location']}"
         period = combine_periods([r.get("period") for r in roles])
-        if period:
-            header += f"\t{format_period_for_display(period)}"
+        period_display = format_period_for_display(period) if period else None
+        if period_display:
+            header += f"\t{period_display}"
 
         multi_role = len(roles) > 1
         role_entries = []
         for r in roles:
             role_header = r["title"]
-            if multi_role and r.get("period"):
-                role_header += f"\t{format_period_for_display(r['period'])}"
+            role_period_display = format_period_for_display(r.get("period")) if r.get("period") else None
+            if multi_role and role_period_display and role_period_display != period_display:
+                role_header += f"\t{role_period_display}"
             role_entries.append({"header": role_header, "bullets": [format_bullet_text(b) for b in r["bullets"]]})
 
         result.append({"header": header, "roles": role_entries})

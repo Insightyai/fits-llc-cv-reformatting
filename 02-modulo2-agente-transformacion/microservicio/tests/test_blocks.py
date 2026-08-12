@@ -90,7 +90,7 @@ def test_missing_period_omits_period_from_header():
     assert companies[0]["roles"][0]["header"] == "Ergonomic Evaluation Project"
 
 
-def test_multi_role_company_with_missing_periods_role_header_has_no_parens():
+def test_multi_role_company_with_missing_periods_role_header_has_no_tab():
     experience = [
         job("Acme", "Role A", None, ["a"]),
         job("Acme", "Role B", "Jan 2020 - Dec 2021", ["b"]),
@@ -98,7 +98,23 @@ def test_multi_role_company_with_missing_periods_role_header_has_no_parens():
     companies = build_experience_companies(experience)
     assert companies[0]["header"] == "Acme\tJan. 2020 – Dec. 2021"
     assert companies[0]["roles"][0]["header"] == "Role A"
-    assert companies[0]["roles"][1]["header"] == "Role B\tJan. 2020 – Dec. 2021"
+    # Role B's own period equals the company's combined period exactly -- no
+    # duplicate date, matches the canon rule (Steven Palmer-Velazquez, 11 ago).
+    assert companies[0]["roles"][1]["header"] == "Role B"
+
+
+def test_role_period_suppressed_when_it_matches_company_combined_period():
+    experience = [
+        job("UPR", "Graduate Research Chemist", "Jan 2022 - Dec 2025", ["a"]),
+        job("UPR", "Laboratory Instructor", "Jan 2021 - Dec 2025", ["b"]),
+        job("UPR", "Analytical Instrumentation Technician", "Jan 2024 - May 2025", ["c"]),
+    ]
+    companies = build_experience_companies(experience)
+    roles = companies[0]["roles"]
+    assert companies[0]["header"] == "UPR\tJan. 2021 – Dec. 2025"
+    assert roles[0]["header"] == "Graduate Research Chemist\tJan. 2022 – Dec. 2025"
+    assert roles[1]["header"] == "Laboratory Instructor"
+    assert roles[2]["header"] == "Analytical Instrumentation Technician\tJan. 2024 – May 2025"
 
 
 def test_new_format_context_uses_experience_companies():
