@@ -62,9 +62,9 @@ def test_fresenius_kabi_two_roles_grouped_under_one_company_header():
     company = companies[0]
     assert company["header"] == "Fresenius Kabi, San Germán, PR\tFeb. 2023 – Present"
     assert len(company["roles"]) == 2
-    assert company["roles"][0]["header"] == "Engineer I (Oct. 2023 – Present)"
+    assert company["roles"][0]["header"] == "Engineer I\tOct. 2023 – Present"
     assert company["roles"][0]["bullets"] == ["Led execution."]
-    assert company["roles"][1]["header"] == "Jr. Technical Consultant (Feb. 2023 – Oct. 2023)"
+    assert company["roles"][1]["header"] == "Jr. Technical Consultant\tFeb. 2023 – Oct. 2023"
 
 
 def test_non_consecutive_same_company_not_grouped():
@@ -98,7 +98,7 @@ def test_multi_role_company_with_missing_periods_role_header_has_no_parens():
     companies = build_experience_companies(experience)
     assert companies[0]["header"] == "Acme\tJan. 2020 – Dec. 2021"
     assert companies[0]["roles"][0]["header"] == "Role A"
-    assert companies[0]["roles"][1]["header"] == "Role B (Jan. 2020 – Dec. 2021)"
+    assert companies[0]["roles"][1]["header"] == "Role B\tJan. 2020 – Dec. 2021"
 
 
 def test_new_format_context_uses_experience_companies():
@@ -148,7 +148,7 @@ def test_multi_role_header_uses_dotted_period():
     ]
     companies = build_experience_companies(experience)
     assert "Jan. 2021 – Dec. 2024" in companies[0]["header"]
-    assert companies[0]["roles"][0]["header"] == "Role A (Jan. 2021 – Dec. 2022)"
+    assert companies[0]["roles"][0]["header"] == "Role A\tJan. 2021 – Dec. 2022"
 
 
 def test_format_bullet_text_uses_en_dash_in_percent_range():
