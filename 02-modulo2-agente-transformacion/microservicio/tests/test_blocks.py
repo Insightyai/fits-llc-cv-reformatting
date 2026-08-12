@@ -3,6 +3,7 @@ from blocks import (
     build_education_entries,
     build_experience_companies,
     build_new_format_context,
+    format_bullet_text,
     format_period_for_display,
 )
 
@@ -148,6 +149,20 @@ def test_multi_role_header_uses_dotted_period():
     companies = build_experience_companies(experience)
     assert "Jan. 2021 – Dec. 2024" in companies[0]["header"]
     assert companies[0]["roles"][0]["header"] == "Role A (Jan. 2021 – Dec. 2022)"
+
+
+def test_format_bullet_text_uses_en_dash_in_percent_range():
+    assert format_bullet_text("Achieved a 15-20% reduction.") == "Achieved a 15–20% reduction."
+    assert format_bullet_text("No range here.") == "No range here."
+
+
+def test_education_entry_fixes_gpa_comma_before_thesis():
+    education = [{
+        "degree": 'Master of Science (M.S.) in X, GPA: 3.75, Thesis: "Y"',
+        "institution": "UPR", "period": None,
+    }]
+    entries = build_education_entries(education)
+    assert entries[0]["degree"] == 'Master of Science (M.S.) in X, GPA: 3.75. Thesis: "Y"'
 
 
 def test_education_entry_fixes_missing_dot_in_abbreviation():
