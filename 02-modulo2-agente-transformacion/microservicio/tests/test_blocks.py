@@ -149,6 +149,43 @@ def test_bd_format_context_drops_skills_from_summary():
     assert context["experience_companies"][0]["header"] == "Acme\tJan. 2020 – Dec. 2021"
 
 
+def test_bd_format_context_splits_education_from_certifications():
+    # canon de Paola (Edgeliz/Edward): grado en negrita/institucion debajo (sin
+    # fecha, sin vineta) va separado de las certificaciones (cada una su propio
+    # bloque) -- nunca una sola lista combinada con vineta "-" como antes.
+    cv = {
+        "full_name": "Jane Doe",
+        "town": "Mayagüez, PR",
+        "summary": "Summary.",
+        "skills": ["Skill A"],
+        "experience": [],
+        "education": [{"degree": "B.S. in Chemistry", "institution": "UPR Mayaguez", "period": "2019 - 2023"}],
+        "certifications": ["Lean Six Sigma Green Belt Certification"],
+    }
+    context = build_bd_format_context(cv)
+    assert "education_certifications_items" not in context
+    assert context["education_items"] == [{"degree": "B.S. in Chemistry", "institution": "UPR Mayaguez"}]
+    assert context["certifications_items"] == ["Lean Six Sigma Green Belt Certification"]
+
+
+def test_bd_format_uses_parenthetical_role_period_not_tab():
+    # canon de Paola (Edgeliz): "Engineer I (Oct. 2023 - Present)" -- el rol usa
+    # parentesis inline, a diferencia de New Format que usa columna con tab.
+    experience = [
+        {"company": "Fresenius Kabi", "title": "Engineer I", "location": "San Germán, PR",
+         "period": "Oct 2023 - Present", "bullets": ["a"]},
+        {"company": "Fresenius Kabi", "title": "Jr. Technical Consultant", "location": "San Germán, PR",
+         "period": "Feb 2023 - Oct 2023", "bullets": ["b"]},
+    ]
+    cv = {
+        "full_name": "Jane Doe", "town": "X", "summary": "S.",
+        "experience": experience, "education": [], "certifications": [], "skills": [],
+    }
+    context = build_bd_format_context(cv)
+    assert context["experience_companies"][0]["roles"][0]["header"] == "Engineer I (Oct. 2023 – Present)"
+    assert context["experience_companies"][0]["roles"][1]["header"] == "Jr. Technical Consultant (Feb. 2023 – Oct. 2023)"
+
+
 def test_format_period_adds_dot_after_month_abbreviations():
     # canon de Paola (Yanina): "Jan. 2021 – Dec. 2025", nunca "May." (ya es palabra completa)
     assert format_period_for_display("Jan 2021 - Dec 2025") == "Jan. 2021 – Dec. 2025"

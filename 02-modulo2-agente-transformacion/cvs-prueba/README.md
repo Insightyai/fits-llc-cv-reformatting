@@ -5,6 +5,8 @@ CVs originales (sin convertir) usados para probar el agente de transformación. 
 | Archivo | Notas |
 |---|---|
 | `Resume- Shirley Mercado.pdf` | CV real de prueba — en inglés, primera persona, sin formato FITS |
+| `Resume- Ruth Sotomayor Clavell.pdf` | CV real, candidata en etapa real "8. CONVERT RESUME-BD FORMAT" (job "Buyer", `jobId 10956256`) — usado para la calibración fina de BD Format (12 ago 2026), encontró el bug de `town` ausente (ver `templates/TAG-CONTRACT.md`) |
+| `Ruth Sotomayor Clavell - BD Format (render de prueba).docx` | Salida real del pipeline (`extract.py` → `agent.py` → `blocks.py` → render) para el CV de arriba, con el fix de `town` ya aplicado — para revisión visual, no es canon |
 | `sinteticos/` | 4 CVs sintéticos (Fase 5), uno por cada regla de contenido del PRD — ver tabla abajo |
 
 El PRD (`../../PRD.md`) pide un set de 15–20 CVs reales para las pruebas de aceptación del Módulo 2 (Fase 7). Agregar aquí cada uno a medida que FITS los envíe.

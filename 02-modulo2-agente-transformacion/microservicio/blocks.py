@@ -35,17 +35,6 @@ def format_bullet_text(text):
     return _PERCENT_RANGE_RE.sub(lambda m: f"{m.group(1)}–{m.group(2)}%", text)
 
 
-def format_education_item(e):
-    item = f"{e['degree']}, {e['institution']}"
-    if e.get("period"):
-        item += f" ({e['period']})"
-    return item
-
-
-def build_education_items(education):
-    return [format_education_item(e) for e in education]
-
-
 def format_education_entry(e):
     return {"degree": _fix_abbrev_missing_dot(e["degree"]), "institution": e["institution"]}
 
@@ -58,13 +47,18 @@ def _company_key(x):
     return (x["company"], x.get("location"))
 
 
-def build_experience_companies(experience):
+def build_experience_companies(experience, role_period_style="tab"):
     """Agrupa experience[] por empresa consecutiva (mismo patron en los 6 CVs canon
     de Paola: un candidato con dos roles seguidos en la misma empresa, sin haberse ido
     entremedio, se muestra como un solo encabezado de empresa -- con el periodo total
     de la permanencia -- y un sub-encabezado en negrita por rol, con su propio periodo
-    entre parentesis solo cuando hay 2+ roles agrupados. Empresas no consecutivas
-    (el candidato volvio despues de trabajar en otro lado) no se agrupan."""
+    solo cuando hay 2+ roles agrupados. Empresas no consecutivas (el candidato volvio
+    despues de trabajar en otro lado) no se agrupan.
+
+    role_period_style controla como se muestra el periodo del rol cuando difiere del
+    periodo combinado de la empresa: "tab" (New Format/Non Template, columna a la
+    derecha) o "parens" (BD Format, canon de Edgeliz Ramos Rosario: "Engineer I
+    (Oct. 2023 - Present)", inline)."""
     companies = []
     for x in experience:
         if companies and _company_key(companies[-1]["_source"][-1]) == _company_key(x):
@@ -90,7 +84,10 @@ def build_experience_companies(experience):
             role_header = r["title"]
             role_period_display = format_period_for_display(r.get("period")) if r.get("period") else None
             if multi_role and role_period_display and role_period_display != period_display:
-                role_header += f"\t{role_period_display}"
+                if role_period_style == "parens":
+                    role_header += f" ({role_period_display})"
+                else:
+                    role_header += f"\t{role_period_display}"
             role_entries.append({"header": role_header, "bullets": [format_bullet_text(b) for b in r["bullets"]]})
 
         result.append({"header": header, "roles": role_entries})
@@ -114,9 +111,9 @@ def build_bd_format_context(cv):
         "full_name": cv["full_name"],
         "town": cv.get("town"),
         "summary": cv["summary"],
-        "experience_companies": build_experience_companies(cv["experience"]),
-        "education_certifications_items": build_education_items(cv["education"])
-        + list(cv.get("certifications", [])),
+        "experience_companies": build_experience_companies(cv["experience"], role_period_style="parens"),
+        "education_items": build_education_entries(cv["education"]),
+        "certifications_items": cv.get("certifications", []),
     }
 
 
