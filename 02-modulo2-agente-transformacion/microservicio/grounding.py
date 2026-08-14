@@ -146,9 +146,9 @@ def _check_i_statement(text, report):
         report.errors.append(f"GROUNDING_I_STATEMENT: {snippet!r}")
 
 
-def _check_metrics(bullet, source_metrics, translated, report):
+def _check_metrics(bullet, source_metrics, source_despaced, translated, report):
     for metric in extract_metrics(bullet):
-        if metric in source_metrics:
+        if metric in source_metrics or metric in source_despaced:
             continue
         snippet = bullet[:60] + ("..." if len(bullet) > 60 else "")
         if translated:
@@ -230,7 +230,7 @@ def evaluate(cv, source_text):
 
         for bullet in job.get("bullets", []):
             _check_i_statement(bullet, report)
-            _check_metrics(bullet, source_metrics, translated, report)
+            _check_metrics(bullet, source_metrics, source_desp, translated, report)
 
     _check_i_statement(cv.get("summary", ""), report)
 

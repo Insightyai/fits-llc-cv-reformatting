@@ -107,6 +107,20 @@ def test_skill_glued_to_comma_in_source_is_not_false_positive(clean_cv, source_t
     assert report.errors == []
 
 
+def test_metric_split_by_phantom_kerning_space_is_not_false_positive(clean_cv, source_text):
+    # candidato real de FITS (etapa BD Format, 14 ago 2026): pypdf extrajo "ISO 14
+    # 001" con un espacio fantasma en medio del numero (mismo tipo de artefacto de
+    # kerning ya documentado para nombres, ej. "Merc/ado" de Shirley Mercado) --
+    # extract_metrics() corta el numero en "14" y "001" por separado, asi que la
+    # metrica limpia "14001" que escribe el agente nunca matchea contra el set de
+    # metricas de la fuente aunque el numero si esta ahi, solo con un espacio de mas.
+    cv = copy.deepcopy(clean_cv)
+    cv["experience"][0]["bullets"][0] = "Facilitated plant certification in ISO 14001."
+    kerned_source = source_text + " facilitated the plant certification in ISO 14 001."
+    report = grounding.evaluate(cv, kerned_source)
+    assert not any("14001" in e for e in report.errors)
+
+
 def test_genuine_i_statement_before_laboratory_is_still_flagged(clean_cv, source_text):
     # la excepcion de secuencia romana no debe volverse una excusa general para "laboratory"
     cv = copy.deepcopy(clean_cv)

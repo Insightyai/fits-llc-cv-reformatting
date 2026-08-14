@@ -309,3 +309,32 @@ Santiago señaló que, aunque ambos pollers corren "cada 15 minutos" (documentad
 **Hallazgo relacionado, no corregido (pertenece a AI Screening Poller, fuera de alcance por la decisión de arriba):** el nodo `Listar Jobs` no tiene retry configurado en ninguno de los 2 pollers — es la llamada más pesada de cada ciclo (pagina hasta 194 páginas de jobs). `Fetch Projobs` sí tiene retry en Convert Resume Poller (`retryOnFail: true, maxTries: 3, waitBetweenTries: 3000`) pero no en AI Screening Poller — asimetría que viene de cuando se copió el patrón el 4 ago. Sin acción en esta sesión (requeriría tocar AI Screening Poller); queda anotado para cuando Santiago decida abordarlo.
 
 **Estado al cierre:** Convert Resume Poller listo para reactivar sin choque de minuto exacto con AI Screening Poller (colchón de 2 min en el peor caso, no garantía absoluta dado que AI Screening ocasionalmente corre más de 2 min). AI Screening Poller sin ningún cambio. Cambio hecho directo en n8n Cloud (no versionado en este repo — los workflows de n8n no viven en git).
+
+### 14 Ago 2026 (continuación) — Reactivación de Convert Resume Poller + Processor
+
+A pedido explícito de Santiago, reactivados ambos workflows (Módulo 2+3 completo, con Módulo 3/SharePoint ya construido y validado desde el 11 ago — a diferencia del intento revertido esa misma fecha, esta vez sí hay dónde entregar el resultado). Chequeo previo antes de activar (solo lectura vía API de n8n + curl a Railway):
+
+- Microservicio en Railway: `GET /health` → `200 {"status":"ok"}`.
+- `Config Piloto` en el Processor: `EMAIL_ENABLED: false` confirmado — la notificación al reclutador sigue retenida, SharePoint y el Sheet funcionan igual.
+- `errorWorkflow` (`Error Alert Global`) enlazado en ambos workflows.
+- `staticData` (dedup, `lastRunStart`) y credenciales (`httpHeaderAuth` en `Listar Jobs`/`Fetch Projobs`) intactos tras el cambio de cron de hoy — confirma que el `PUT` de la sesión anterior no rompió nada.
+- `MAX_PER_CYCLE` presente en `Dedup y Filtrar` (límite de candidatos por corrida, mecanismo anti-OOM).
+
+**Activados en orden** (Processor primero, para que el webhook esté listo antes de que el Poller dispare): `JazzHR - Convert Resume Processor` (`mp3U5XDSxLCAX9kI`) y `JazzHR - Convert Resume Poller` (`6gxbJ87rfAsbcCOO`), ambos `active: true` verificado. AI Screening Poller sigue `active: true` sin cambios.
+
+**Estado al cierre:** los 3 workflows relevantes (AI Screening Poller, Convert Resume Poller, Convert Resume Processor) activos en producción. Modo piloto sigue activo (email retenido) hasta que Santiago revise varios CVs reales generados por el ciclo automático.
+
+### 14 Ago 2026 (continuación) — Primer ciclo real en producción: 9 candidatos, 7 exitosos, segundo bug real de grounding encontrado y corregido
+
+**Primer ciclo automático real** (18:07-18:26 UTC, poco después de la reactivación): el Poller encontró y despachó 9 candidatos reales al Processor, todos con ejecución `success` a nivel de n8n. De esos 9, **7 llegaron a SharePoint** (Aida Cruz Santoni, Alexandra Santiago, Eimylin Achang, Ernesto Colón Zayas, Kevin A Rivera Lopez, Yailyn Otero Torres, y uno más) — confirmado por Santiago viendo la carpeta real. Los otros 2 fallaron con `422 GROUNDING_FAILED` en `/transform` (correctamente bloqueados, sin subir nada a SharePoint):
+
+- **Ruth Sotomayor Clavell** (`candidateId 387627366`, esta vez en etapa New Format, no BD como el 12 ago) — `GROUNDING_TOKEN_NOT_FOUND: skill='Competitive drive'`. Verificado contra su CV real (descargado de `api.jazz.co` con cookie fresca de Santiago): esa frase no aparece en ningún lado del documento — **rechazo legítimo**, el agente inventó/parafraseó la skill, el chequeo funcionó como debía (mismo riesgo ya documentado en la Fase 5).
+- **Candidato real, etapa BD Format** (`candidateId 430323639`, archivo "Soto_Eli...") — `GROUNDING_METRIC_NOT_FOUND: '14001'` en un bullet sobre certificación ISO. Verificado contra el texto que realmente extrae `extract.py` (`pypdf`) del CV real: el original dice "facilitate the plant certification in ISO 14 001" — **espacio fantasma de kerning tipográfico en medio del número** (mismo tipo de artefacto ya documentado para nombres, el caso "Merc/ado" de Shirley Mercado en `agente/CONTRATO-AGENTE.md`). `extract_metrics()` corta el número en "14" y "001" por separado, así que el "14001" limpio del agente nunca matcheaba — **bug real, no un rechazo legítimo**.
+
+**Corregido en `grounding.py`:** `_check_metrics()` ahora también acepta el match contra la fuente sin espacios (`despace()`, la misma función ya usada para verificar `full_name` — mismo mecanismo, mismo patrón ya probado en el proyecto). Test de regresión con el patrón exacto en `tests/test_grounding.py`. 76 tests + smoke 6/6 en verde.
+
+**Verificación del poller en curso (sin cambios, funcionando bien):** Santiago preguntó por qué no aparecían candidatos nuevos ~1h después del primer lote. Confirmado con el `staticData` real del workflow (`lastRunStart` actualizándose cada 15 min, coincidiendo con el cron `7,22,37,52`) que el poller sigue disparando puntual — simplemente no encontró candidatos nuevos en los ciclos siguientes. `processedPairs` en el `staticData` confirma los 9 IDs ya marcados como procesados hoy (dedup funcionando).
+
+**Hallazgo operativo importante: el dedup marca "procesado" al primer intento, sea éxito o falla.** `processedPairs` en el `staticData` del Poller ya tiene las 2 llaves de los candidatos fallidos (`387627366-10956256-10727655`, `430323639-10898257-10727630`) — el poller no los va a reintentar solo en el próximo ciclo, aunque el bug de `'14001'` ya esté corregido. Reprocesar al candidato de BD Format (una vez el fix esté desplegado en Railway) requiere intervención manual: llamar `/transform`+`/render` directo, o limpiar esa llave puntual del `staticData` vía la API de n8n.
+
+**Pendiente:** confirmar si el deploy a Railway es automático con el push a GitHub o requiere redespliegue manual — necesario para que el fix de `'14001'` llegue a producción.
