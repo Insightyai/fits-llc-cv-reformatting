@@ -93,6 +93,20 @@ def test_roman_numeral_sequence_i_ii_is_not_flagged(clean_cv, source_text):
     assert report.errors == []
 
 
+def test_skill_glued_to_comma_in_source_is_not_false_positive(clean_cv, source_text):
+    # candidato real de FITS (Luis Antonio Garcia Sanchez): lista de skills de una
+    # sola palabra separadas por comas -- el texto extraido del PDF pega la coma a
+    # la palabra anterior sin espacio ("Excel,"), y a veces pega dos skills entre si
+    # sin ningun espacio ("JMP,SolidWorks"). Splitear el texto fuente solo por
+    # espacios (`.split()`) deja la puntuacion pegada al token y nunca matchea el
+    # valor limpio ("Excel", "JMP", "SolidWorks") que devuelve el agente.
+    cv = copy.deepcopy(clean_cv)
+    cv["skills"] = ["Excel", "JMP", "SolidWorks"]
+    glued_source = source_text + " Tools: NX, JMP,SolidWorks, Ansys, Matlab, Microsoft Word, Excel, PowerPoint"
+    report = grounding.evaluate(cv, glued_source)
+    assert report.errors == []
+
+
 def test_genuine_i_statement_before_laboratory_is_still_flagged(clean_cv, source_text):
     # la excepcion de secuencia romana no debe volverse una excusa general para "laboratory"
     cv = copy.deepcopy(clean_cv)

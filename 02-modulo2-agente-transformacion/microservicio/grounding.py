@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 _DASH_RE = re.compile(r"[‐-―−]")
 _QUOTE_RE = re.compile(r"[‘’“”]")
 _WS_RE = re.compile(r"\s+")
+_TOKEN_SPLIT_RE = re.compile(r"[^\w]+", re.UNICODE)
 
 LEGAL_SUFFIXES = {"inc", "llc", "corp", "corporation", "co", "ltd", "sa", "plc", "gmbh"}
 STOPWORDS = {"the", "and", "of", "de", "la", "el", "los", "las"}
@@ -63,7 +64,8 @@ def despace(text):
 
 
 def significant_tokens(value):
-    tokens = [t for t in normalize(value).split() if t not in STOPWORDS and t not in LEGAL_SUFFIXES]
+    tokens = [t for t in _TOKEN_SPLIT_RE.split(normalize(value)) if t]
+    tokens = [t for t in tokens if t not in STOPWORDS and t not in LEGAL_SUFFIXES]
     return [t for t in tokens if len(t) >= 3]
 
 
@@ -156,7 +158,7 @@ def _check_metrics(bullet, source_metrics, translated, report):
 
 
 def _check_summary_claims(summary, source_words, report):
-    tokens = {w.strip(".,()") for w in normalize(summary).split()}
+    tokens = {t for t in _TOKEN_SPLIT_RE.split(normalize(summary)) if t}
     flagged = sorted(
         w for w in tokens if len(w) >= 7 and w not in SUMMARY_SOFT_STOPWORDS and w not in source_words
     )
@@ -171,7 +173,7 @@ def evaluate(cv, source_text):
     report = GroundingReport()
     source_norm = normalize(source_text)
     source_desp = despace(source_text)
-    source_words = set(source_norm.split())
+    source_words = {t for t in _TOKEN_SPLIT_RE.split(source_norm) if t}
     source_years = extract_years(source_text)
     source_metrics = extract_metrics(source_text)
     translated = bool(cv.get("_meta", {}).get("translated"))
