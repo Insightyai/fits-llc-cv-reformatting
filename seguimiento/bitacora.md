@@ -683,3 +683,5 @@ Devuelve un array con todo el historial de actividad del `projob` (cambios de et
 - Ruth Sotomayor Clavell usada de control adicional (mismo patrón, sin discrepancia).
 
 **Pendiente:** validar con un candidato nuevo procesado de punta a punta por el ciclo automático del Poller (no se forzó un reproceso real para no duplicar correos a candidatos ya notificados) y confirmar que el correo real llega al recruiter correcto cuando el mover y el hiring lead son distintos.
+
+**Cierre de sesión:** Processor (`mp3U5XDSxLCAX9kI`) confirmado activo en producción con el nodo `Fetch Activity` en su lugar (36 nodos). Sin workflows temporales de investigación pendientes de borrar — los 4 usados durante la sesión (lectura de `api.jazz.co` y del Sheet) se crearon y eliminaron uno a uno. Documentado y pusheado a `main` (`c60e493`).
