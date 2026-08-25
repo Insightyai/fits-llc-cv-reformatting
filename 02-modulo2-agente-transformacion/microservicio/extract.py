@@ -57,7 +57,11 @@ def _extract_pdf(data: bytes):
 
 def _extract_docx(data: bytes):
     doc = Document(io.BytesIO(data))
-    paragraphs = [p.text for p in doc.paragraphs]
+    header_footer_paragraphs = []
+    for section in doc.sections:
+        header_footer_paragraphs += [p.text for p in section.header.paragraphs if p.text.strip()]
+        header_footer_paragraphs += [p.text for p in section.footer.paragraphs if p.text.strip()]
+    paragraphs = header_footer_paragraphs + [p.text for p in doc.paragraphs]
     return "\n".join(paragraphs), len(paragraphs)
 
 

@@ -685,3 +685,72 @@ Devuelve un array con todo el historial de actividad del `projob` (cambios de et
 **Pendiente:** validar con un candidato nuevo procesado de punta a punta por el ciclo automático del Poller (no se forzó un reproceso real para no duplicar correos a candidatos ya notificados) y confirmar que el correo real llega al recruiter correcto cuando el mover y el hiring lead son distintos.
 
 **Cierre de sesión:** Processor (`mp3U5XDSxLCAX9kI`) confirmado activo en producción con el nodo `Fetch Activity` en su lugar (36 nodos). Sin workflows temporales de investigación pendientes de borrar — los 4 usados durante la sesión (lectura de `api.jazz.co` y del Sheet) se crearon y eliminaron uno a uno. Documentado y pusheado a `main` (`c60e493`).
+
+### 24 Ago 2026 — Auditoría de Codex al microservicio (solo lectura) y plan de fixes para la próxima sesión
+
+**Pedido:** Santiago pidió un `/codex:review` del microservicio (no existe ese comando en este entorno) para tener una segunda opinión sin tocar nada, dado que todo está activo en producción. Se ejecutó vía `codex:rescue` en modo explícito de solo-lectura/auditoría sobre `02-modulo2-agente-transformacion/microservicio/` (`main.py`, `agent.py`, `extract.py`, `grounding.py`, `dates.py`, `blocks.py`, `tool_schema.py`, `tests/`). Codex devolvió 21 hallazgos priorizados (crítico/alto/medio/bajo). Ningún archivo se modificó en esta sesión.
+
+**Verificación manual (Claude) de los 21 hallazgos contra el código real, antes de aceptar ninguno a ciegas:** se leyeron los 5 archivos completos y se contrastó cada hallazgo línea por línea, evaluando además el impacto real dado el contexto concreto del sistema (único caller confiable — n8n — vía `X-API-Key`; la amenaza real es el contenido del CV del candidato, no un atacante externo masivo; y el historial ya conocido de falsos positivos reales en `grounding.py`).
+
+**Plan de ataque para la sesión de mañana, en orden de prioridad:**
+
+1. **`grounding.py:154` — traducción degrada una métrica inventada de error a warning.** Con `EMAIL_ENABLED: true` ya activo, un CV traducido (la regla de negocio #1) con una métrica inventada sale como `review` en vez de `failed`, y el correo se manda igual. Contradice el contrato de `CONTRATO-AGENTE.md`. Prioridad más alta: ya está corriendo así en producción hoy.
+2. **`grounding.py:107` — empresa/certificación/skill de varias palabras pasa si matchea UN solo token significativo, en vez de todos.** Es el mecanismo central "anti-invención" y ya falló dos veces en producción (bug de skills de una palabra, bug de ISO 14001). Requiere tests antes de aplicar — el archivo es frágil ante cambios de estrictez.
+3. **`grounding.py:149` — el chequeo de métricas contra `source_despaced` es un substring sin límites** (heredado del fix real de ISO 14001 del 14 ago, quedó demasiado permisivo). Acotarlo sin romper el caso que motivó el fix original.
+4. **`extract.py:58` — `_extract_docx` solo lee `doc.paragraphs`, ignora tablas.** Antes de invertir tiempo, confirmar con un CV real de FITS que use tablas de layout si esto aplica en la práctica.
+5. **Batch de fixes baratos y sin riesgo de regresión** (aplicar juntos, sin necesidad de mayor análisis):
+   - `main.py:85/148` — solo se atrapa `JSONDecodeError`; un JSON válido no-objeto (array/string/null) tira 500 en vez de 400.
+   - `main.py:63` — `int(content_length)` sin guard ante header no numérico.
+   - `agent.py:107/113` — el usage del segundo llamado (retry de schema) pisa al del primero; subreporta tokens reales.
+   - `main.py:71` — comparación de API key no es constant-time (`hmac.compare_digest`).
+   - `main.py:132` — `full_name` sin sanitizar antes de meterlo en el header `Content-Disposition`.
+   - `dates.py:102` (`combine_periods`) — puede mezclar el inicio de un periodo con el fin de otro periodo parcialmente inválido.
+
+**Con cuidado, si hay tiempo (no aplicar literal):**
+- `agent.py:40/42` — delimitar el CV como dato no confiable en el prompt (mitigación de prompt injection); el grounding determinístico ya acota el blast radius, así que es higiene, no urgencia.
+- `grounding.py:127` (`_check_i_statement`) — agregar detección de "we/our/us" en minúscula. **Riesgo real de regresión:** "US" (Estados Unidos, "US Army", "US-based") aparece todo el tiempo en CVs de Puerto Rico — si se agrega "us" a la lista de pronombres prohibidos sin excluir el gentilicio/país, se reproduce el mismo patrón de falso positivo que ya pasó con "Chemistry Laboratory I & II".
+
+**Descartados por ahora (bajo ROI o riesgo desproporcionado al beneficio):**
+- `grounding.py:206/224` (años no verificables si la fuente no tiene ningún año de 4 dígitos) y `grounding.py:225/248` (años chequeados contra todo el documento, no por entidad) — casos de baja probabilidad real; el segundo requeriría asociar cada entidad a un tramo del texto fuente, reescritura no trivial.
+- `grounding.py:109` (empresa sin tokens significativos pasa como warning) — una alucinación real del LLM casi nunca produce una empresa vacía o un acrónimo de 1-2 letras; más un caso de nombres cortos legítimos (ej. "GE") que de invención.
+- `extract.py:129` (truncado a `MAX_CHARS` sigue procesando) — ya es un warning conocido y aceptado (`SOURCE_TRUNCATED`), documentado desde la Fase 5.
+- `agent.py:49` / `main.py:174` (errores de Anthropic sin mapear a códigos propios) — mejora real de estabilidad pero es un cambio de arquitectura de manejo de errores, no un bug puntual; se evalúa aparte, no en este batch.
+- `grounding.py:181` (nombre validado por substring sin límites) — mismo patrón que el de métricas, pero en la dirección opuesta (podría dejar pasar una alucinación de nombre, no bloquear una real) — baja probabilidad dado que el nombre real del candidato ya viene de JazzHR, no solo del LLM.
+- `extract.py:42/107` (fallback a texto de binario no reconocido) y `extract.py:52/58` (sin límites de expansión de PDF/DOCX) — reales pero el propio diseño fail-closed de `grounding.py` acota el daño (texto ilegible casi seguro termina en `GROUNDING_FAILED`, no en un `.docx` malo entregado).
+- `main.py:59` (Content-Length sin verificación de streaming) — `check_api_key()` corre antes de leer el body, así que requiere ya tener la API key filtrada/comprometida; defensa en profundidad, no urgente.
+
+**Antes de tocar código:** escribir tests para los casos inválidos de cada fix de la prioridad 1-3 (estándar TDD del proyecto) — en particular casos que reproduzcan los bugs reales ya conocidos (ISO 14001, skills de una palabra) para confirmar que el fix no los revierte.
+
+### 25 Ago 2026 — Autodesactivación del `Convert Resume Poller` por OOM recurrente (reactivado manualmente por Santiago), y bug real de `GROUNDING_NAME_NOT_FOUND` encontrado y corregido (nombre del candidato en el header de Word, ignorado por `extract.py`)
+
+**Incidente 1 — n8n autodesactivó el Poller a medianoche.** Santiago reportó el correo automático de n8n (`n8n has automatically deactivated "JazzHR - Convert Resume Poller" due to repeated crashes`), recibido el 24 ago 23:37 hora local. Confirmado vía API de n8n: el disparador fue un crash real por `Workflow did not finish, possible out-of-memory issue` a las **2026-08-25T04:37:00 UTC**, con `lastNodeExecuted: "Filtrar Open y Mapear Formatos"`.
+
+**El fix de OOM del 19 ago (`saveDataSuccessExecution: "none"`) redujo la frecuencia de crashes pero no los eliminó.** Revisando el historial completo desde esa fecha aparecen 4 crashes por el mismo síntoma (`Workflow did not finish, possible out-of-memory issue`), espaciados en días y en nodos distintos cada vez — no un bug puntual de un nodo, sino la instancia llegando al límite de memoria en momentos distintos del ciclo:
+- 19 ago 12:37 y 14:07 → sin nodo identificado en el log
+- 20 ago 03:22 → `Fetch Projobs`
+- 21 ago 13:37 → `Fetch Projobs`
+- 25 ago 04:37 → `Filtrar Open y Mapear Formatos` (este disparó la autodesactivación)
+
+**Santiago reactivó el workflow manualmente** antes de que se completara una investigación más profunda de causa raíz (memoria de la instancia, tamaño de bloque del escaneo rotativo, `batchInterval`). **Sin confirmación 100% de que el ciclo automático ya esté corriendo con normalidad:** por diseño (`saveDataSuccessExecution: "none"`), una ejecución exitosa no deja registro, así que la ausencia de ejecuciones nuevas en el historial del Poller (nada desde el crash de las 04:37 UTC, ya con 8 horas transcurridas al momento de escribir esto) no es evidencia concluyente de que siga caído — mismo patrón de falsa alarma ya documentado el 20 ago. Tampoco hay ejecuciones nuevas del Processor desde las 19:41 UTC del 24 ago, pero eso también es compatible con que simplemente no haya candidatos nuevos en la etapa Convert Resume en ese lapso.
+
+**Pendiente:** confirmar en la próxima sesión, con evidencia independiente (Sheet real o un candidato de prueba), que el Poller quedó corriendo con normalidad tras la reactivación manual. Si vuelve a crashear, evaluar reducir el tamaño de bloque del escaneo rotativo (`staticData.scanOffset`, hoy en bloques de 20) o espaciar más el `batchInterval` de `Fetch Projobs` para bajar la carga de memoria por ciclo.
+
+**Incidente 2 — bug real de `GROUNDING_NAME_NOT_FOUND` con un candidato real (Raúl E. Gómez Pérez).** Santiago reportó 2 filas nuevas en la pestaña "Errores de Procesamiento" del Sheet de log: mismo candidato (candidateId 407080280), 2 jobs distintos (10770930 y 10836209), mismo CV, mismo motivo (`GROUNDING_NAME_NOT_FOUND: unknown no aparece en la fuente`), ambos el 24 ago.
+
+**Causa raíz confirmada** descargando el `.docx` real desde la ejecución de n8n (`POST /transform` en el Processor) y corriendo `extract_text()` en local: el nombre del candidato (`RAÚL E. GÓMEZ PÉREZ, M.S., B.S. Chem. Eng.`) está puesto en el **header de página** del documento Word, no en el cuerpo. `_extract_docx()` en `extract.py` solo leía `doc.paragraphs`, que en `python-docx` **no incluye headers ni footers de sección** — el texto que llegaba al agente empezaba directo en "PROFESSIONAL SUMMARY", sin el nombre. El LLM, sin el dato en la fuente, puso `"unknown"` como `full_name`, y `grounding.py` bloqueó correctamente (el chequeo hizo su trabajo; la falla estaba en lo que `extract.py` le entregaba). Este hallazgo coincide con el punto 4 de la auditoría de Codex del 24 ago (`extract.py:58 — _extract_docx solo lee doc.paragraphs`), que había señalado el riesgo en el caso de tablas — el caso real que apareció fue headers de página, mismo punto ciego.
+
+**Fix aplicado (TDD):** test nuevo `test_docx_name_in_page_header_included` en `tests/test_extract.py`, construido con un `.docx` sintético (nombre solo en el header, cuerpo sin nombre) que reproduce el bug — falla antes del fix, pasa después. `_extract_docx()` ahora concatena el texto de `section.header`/`section.footer` de cada sección (filtrando párrafos vacíos, para no alterar el conteo de `units` en el caso común sin header/footer real) antes del cuerpo del documento. Verificado:
+- Test nuevo pasa; los 10 tests existentes de `test_extract.py` siguen pasando (incluido `test_docx_synthetic`, que sin el filtro de vacíos se rompía por los párrafos vacíos que Word agrega por defecto a header/footer).
+- Suite completa: 77 pasan (6 `llm` opt-in deseleccionados).
+- Contra el `.docx` real de Raúl Gómez Pérez: el texto extraído ahora empieza con `"RAÚL E. GÓMEZ PÉREZ, M.S., B.S. Chem. Eng.\nPuerto Rico Chemistry License #4754..."` en vez de saltar directo a "PROFESSIONAL SUMMARY".
+
+**Sin deploy todavía** — el fix está aplicado y verificado en local, pendiente de push a `main` (dispara deploy automático a Railway) y de un reproceso real de Raúl Gómez Pérez para confirmar de punta a punta.
+
+**Pendiente:**
+1. Push del fix de `extract.py` a `main` y confirmación del deploy automático en Railway.
+2. Reprocesar a Raúl Gómez Pérez (candidateId 407080280) en sus 2 jobs tras el deploy, para confirmar que el `.docx` sale bien y no vuelve a bloquear por grounding.
+3. Confirmar que el Poller sigue corriendo con normalidad tras la reactivación manual (ver Incidente 1).
+4. Evaluar si otros candidatos con el mismo patrón (nombre en header de Word) ya fallaron antes sin que se investigara la causa — no se auditó el histórico completo de `GROUNDING_NAME_NOT_FOUND`, solo se corrigió el caso puntual de hoy.
+5. Pendientes de sesiones anteriores sin cambios: Bug 1 (confirmar más ciclos sin 429), auditar `POST /render` por el mismo patrón de `neverError` faltante, batch de fixes de `grounding.py`/`main.py`/`agent.py`/`dates.py` de la auditoría de Codex del 24 ago, avisar a `eterron@fitspr.com`/`paolarod@fitspr.com` (bloqueado por token OAuth de Gmail vencido).
+
+**Lección:** el mismo síntoma de OOM puede tener el mismo fix parcial repetido varias veces sin resolverse del todo — cuando un "fix" reduce la frecuencia de un problema pero el síntoma reaparece semanas después en un nodo distinto, vale la pena tratarlo como una señal de límite estructural (memoria de la instancia, volumen de datos por ciclo) en vez de seguir parchando síntoma por síntoma. Y en extracción de texto de documentos reales, cualquier función que solo lea el "cuerpo" de un formato rico (párrafos, sin tablas, sin headers/footers, sin cuadros de texto) va a toparse tarde o temprano con un CV real que puso información clave fuera de esa sección — ya van dos puntos ciegos reales de `extract.py` en esta categoría (tablas señaladas por Codex, headers confirmado hoy).

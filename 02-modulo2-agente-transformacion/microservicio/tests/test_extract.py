@@ -50,6 +50,22 @@ def test_docx_synthetic():
     assert "Jane Doe" in result.text
 
 
+def test_docx_name_in_page_header_included():
+    # patron real de candidato FITS (Raul Gomez Perez, 24 ago 2026): el nombre esta puesto
+    # en el header de pagina de Word, no en el cuerpo -- python-docx doc.paragraphs no lo lee,
+    # asi que el LLM nunca ve el nombre y grounding.py bloquea con GROUNDING_NAME_NOT_FOUND.
+    doc = docx.Document()
+    doc.sections[0].header.paragraphs[0].text = "Jane Doe, M.S."
+    doc.add_paragraph("PROFESSIONAL SUMMARY")
+    doc.add_paragraph("Engineer with " + " ".join(["experience"] * 60))
+    buf = io.BytesIO()
+    doc.save(buf)
+
+    result = extract_text("cv.docx", buf.getvalue())
+
+    assert "Jane Doe" in result.text
+
+
 def test_plain_text_fallback():
     # cubre el fallback de JazzHR (`resumeMeta`) que devuelve texto plano, no un archivo
     text = "Jane Doe\nSoftware Engineer with " + " ".join(["experience"] * 60)
