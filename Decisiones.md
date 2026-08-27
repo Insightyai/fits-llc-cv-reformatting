@@ -204,6 +204,18 @@
 
 **Impacto:** `Convert Resume Poller` y `AI Screening Poller` ya no deberían volver a solaparse en memoria — verificado que el cambio no tocó `AI Screening Poller` de ninguna forma. No resuelve los ~3 crashes que fueron aislados (memoria propia de `Convert Resume Poller` por ciclo, no por solapamiento) — quedan pendientes en `seguimiento/plan-pendientes-oom-poller.md` junto con la migración a Railway y la conversación pendiente con FITS sobre el webhook pago.
 
+### 27 Ago 2026 — Ampliación del horario de notificaciones al reclutador (feedback de FITS)
+
+**Contexto:** FITS pidió recibir los CVs procesados sin importar la hora, en vez de solo Lun-Vie 8am-5pm hora PR (gate activado el 14 ago 2026 junto con `EMAIL_ENABLED`). Santiago propuso, en vez de eliminar el gate por completo, ampliarlo: Lunes a Viernes 7am-8pm, y agregar el sábado de 7am a 4pm — domingo sigue excluido.
+
+**Decisión:** se amplía el gate en vez de eliminarlo (mantiene la protección de no despertar a un reclutador con un correo automático de madrugada, que fue la razón original del gate del 14 ago).
+
+**Implementado en 2 lugares, ambos en `fits.app.n8n.cloud`:**
+1. **`¿Horario Laboral?`** (IF node en `JazzHR - Convert Resume Processor`, `mp3U5XDSxLCAX9kI`) — decide si el correo se envía ya mismo o se encola. Antes: `weekday` 1-5 (L-V) y `hour` 8-17 (fijo). Ahora: `weekday` 1-6 (L-Sáb) y `hour >= 7`, con el límite superior dinámico según el día — `{{ $now.setZone('America/Puerto_Rico').weekday === 6 ? 16 : 20 }}` (sábado corta a las 4pm, el resto de la semana a las 8pm).
+2. **Cron de `JazzHR - Convert Resume Notification Queue Flusher`** (`A2fusycYaExIdZ4R`) — es lo que realmente despacha los correos ya encolados; no tiene su propio IF de horario, confía en que su cron solo dispare dentro de la ventana laboral. Antes: 1 regla, `5,20,35,50 8-16 * * 1-5`. Ahora: 2 reglas — `5,20,35,50 7-19 * * 1-5` (L-V) y `5,20,35,50 7-15 * * 6` (sábado) — el Schedule Trigger de n8n soporta múltiples reglas de cron en el mismo nodo.
+
+**Verificación:** lógica nueva probada en Python contra la matriz completa de 7 días × horas límite (6am/7am/15h/16h/19h/20h) antes de aplicar — cubre exactamente L-V 7am-7:59pm, sábado 7am-3:59pm, domingo siempre excluido. Aplicado vía `PUT` con snapshot antes/después en ambos workflows: solo el nodo esperado cambió en cada uno (`¿Horario Laboral?` en el Processor, el Schedule Trigger en el Flusher), `active: true` intacto, mismo número de nodos. Detalle completo en `seguimiento/bitacora.md`, 27 ago 2026.
+
 ---
 
 ## Decisiones Pendientes
@@ -222,7 +234,7 @@
 - [ ] Confirmar con Paola el tipo de guion exacto de Non Template (se usó `"-"` simple por default el 11 ago, sin confirmar — ver `templates/TAG-CONTRACT.md`)
 - [ ] Confirmar con Paola si "Non Template" debe tener secciones variables por candidato (reflejando el CV original) en vez del template fijo actual — hallazgo del 11 ago, no resuelto
 - [ ] Confirmar con Paola si `CORE COMPETENCIES` / `TECHNICAL & PROFESSIONAL SKILLS` con subtítulos / `ADDITIONAL EXPERIENCE` (presentes en el canon de Kenneth/Yanina pero no implementados el 11 ago) deberían soportarse como secciones opcionales de New Format
-- [ ] Qué hacer si el grounding de `skills[]` bloquea seguido CVs reales sin sección explícita de habilidades — ver hallazgo de Fase 5 (30 jul 2026): prompt que deje `skills: []` vacío vs. relajar `grounding.py` a warning como `title`/`institution`
+- [x] Qué hacer si el grounding de `skills[]` bloquea seguido CVs reales sin sección explícita de habilidades — resuelto 27 ago 2026 (primer caso real, Patrick Santiago Cintrón): prompt/schema dejan `skills: []` vacío en vez de inferir, ver entrada del 30 jul 2026 arriba
 - [x] Confirmar en cuáles workflows de JazzHR se habilita el/los nuevo(s) stage(s) — resuelto: 10 workflows, mapeo exacto arriba
 - [x] Corregir etapa mal nombrada en JNJ - Workflow 2024 (`Convert Resume - Worksense` → `Convert Resume - Non Template`) — resuelto 28 jul 2026, verificado vía API
 - [x] **Confirmar con Paola:** para JNJ - Workflow 2024, ¿la etapa "Convert Resume - New Format" debe generar el template Worksense en vez del template genérico de New Format? — resuelto: no, Worksense queda descartado, JNJ usa el template genérico de New Format (correo de Paola, 21 jul 2026)
