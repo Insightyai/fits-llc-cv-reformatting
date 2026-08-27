@@ -26,7 +26,7 @@
     "skills": {
       "type": "array",
       "items": {"type": "string"},
-      "description": "Lista de habilidades/competencias, tal como aparecen o normalizadas minimamente. No traducir terminologia tecnica/certificaciones a menos que el original ya este en otro idioma."
+      "description": "Lista de habilidades/competencias, tal como aparecen o normalizadas minimamente. No traducir terminologia tecnica/certificaciones a menos que el original ya este en otro idioma. Si el CV original NO trae una lista explicita de skills (solo un parrafo narrativo tipo 'Skills Summary'), dejar este array vacio -- nunca inferir items parafraseando la experiencia o un resumen narrativo."
     },
     "experience": {
       "type": "array",

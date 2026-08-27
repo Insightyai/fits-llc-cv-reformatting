@@ -156,6 +156,8 @@
 
 **Resultado de la corrida completa:** 4/4 CVs sintéticos en verde (`ok`/`review`, nunca `failed`), tiempos de transformación entre 10s y 25s — muy por debajo del presupuesto interno de 60s y del criterio de 3 minutos punta a punta del PRD (que todavía no se puede medir completo porque Fase 6 no está wireada).
 
+**Resuelto el 27 ago 2026 — primer caso real confirma el riesgo, se elige la opción (a).** Patrick Santiago Cintrón (candidato real de FITS, New Format) quedó bloqueado en producción con `GROUNDING_TOKEN_NOT_FOUND` sobre 3 skills inferidas ("Teamwork", "Computer Proficiency", "Adaptability") — su CV real solo trae un párrafo narrativo de "Skills Summary", sin lista explícita, exactamente el patrón anticipado acá. Confirmado descargando su CV real y comparando contra el texto fuente. Decisión de Santiago: opción (a) — `cv-schema.json` (descripción de `skills`, única fuente de verdad del `input_schema` de la tool) y `prompt/transform-v1.md` ahora instruyen dejar `skills: []` vacío cuando el original no trae una lista propia, en vez de inferirla. Se descartó la opción (b) por el riesgo de reabrir `grounding.py` (ya frágil, incidente real el 26-27 ago) y porque hay 2 casos reales ya documentados (Ruth Sotomayor "Competitive drive", 14 ago; Luis Moreno "Confined Space Rescue Certification", 17 ago) donde el bloqueo estricto de `skills[]` atrapó correctamente una invención genuina — bajar eso a warning los dejaría pasar también. Verificado con un CV sintético nuevo que reproduce el patrón exacto de Patrick (`cvs-prueba/sinteticos/05-ingles-skills-narrativo-sin-lista.txt`, llamada real a Claude): `skills: []`, `state=review`, nunca `failed`. Detalle técnico completo en `seguimiento/bitacora.md`, 27 ago 2026.
+
 ### 11 Ago 2026 — Ajustes de maquetación por CVs canon de Paola (bullets, header de experiencia, estructura por formato)
 
 **Contexto:** reunión de Paola con Santiago — FITS quiere que los 3 formatos generados queden exactamente iguales (texto, títulos, forma, tipo de bullet) a 6 CVs canon que Paola aprobó a mano (2 por formato, en `02-modulo2-agente-transformacion/cvs-canon/`, no versionados por tener datos de candidatos reales). Comparación carácter por carácter (extracción raw de los PDF, no solo visual) contra los 3 templates activos.
@@ -183,6 +185,24 @@
 - La pestaña del Sheet de log quedó con el nombre por defecto `Sheet1` en vez de `Log` (el nombre no afecta la función, es cosmético).
 
 **Modo piloto:** a pedido explícito de Santiago, el envío de la notificación queda detrás de un interruptor manual (nodo `Config Piloto` en el Processor, `EMAIL_ENABLED: false` por defecto) — el pipeline completo corre igual (transformación, render, subida a SharePoint, registro en el log de Sheets), pero la notificación al reclutador se retiene hasta que Santiago revise manualmente entre 3 y 5 CVs reales generados y confirme que la calidad es aceptable. Cuando esté listo, se cambia ese valor a `true` vía la API de n8n. Resuelve el punto pendiente "[ ] Paso de revisión humana antes del envío grupal" de la lista de abajo — la resolución final fue un gate manual de arranque, no un gate por-candidato permanente.
+
+---
+
+### 26 Ago 2026 — Fix del OOM recurrente: sincronizar el cron de Convert Resume Poller con AI Screening Poller, en vez de subir capacidad o migrar de plataforma
+
+**Contexto:** la instancia de n8n compartida venía crasheando por OOM de forma recurrente (6 incidentes conocidos desde el 19 ago). Investigando a fondo el crash del 26 ago (que tumbó 3 workflows a la vez), se confirmó la causa raíz: `Convert Resume Poller` (cron cada 15 min, ~4-5 min de duración) y `AI Screening Poller` (cron fijo cada 10 min, intocable por decisión reiterada del cliente) compiten por memoria cuando sus ventanas de ejecución se solapan — ya había pasado 2 veces antes (19 ago) sin identificarse como el mismo patrón.
+
+**Opciones consideradas:**
+1. Subir `CHUNK_SIZE` o el volumen de datos por ciclo para bajar la latencia reportada por el cliente (+1h de espera) — descartado: iría en contra de la única mitigación de memoria ya conocida, y el `batchInterval` de `Fetch Projobs` ya está calibrado al límite exacto del rate limit real de JazzHR (~1 req/10-11s), tocarlo antes causó 429s masivos.
+2. Pagar el add-on de webhook nativo de JazzHR (Candidate Export Integration + Workflow Helper, ~$27-29 USD/mes) para eliminar el polling de raíz — técnicamente es la solución más limpia, pero ya fue rechazada una vez por el cliente por costo; se re-investigó en esta sesión y sigue siendo la única alternativa real a nivel de API, sin novedades técnicas que cambien el cálculo de costo-beneficio del lado de FITS.
+3. Migrar el polling del `Convert Resume Poller` fuera de n8n, al microservicio Python (FastAPI) ya desplegado en Railway — confirmado técnicamente viable (falta `httpx`, un disparador periódico, portar el dedup, y la credencial `JazzHR Cookie` como env var), eliminaría uno de los 2 procesos pesados que compiten por memoria en la instancia compartida. Descartado **para esta sesión** por ser un cambio de arquitectura grande, no por invalidez técnica.
+4. Ajustar únicamente el cron de `Convert Resume Poller` para que su ventana de ejecución nunca coincida con los disparos fijos de `AI Screening Poller`, sin tocar volumen de datos, rate limit, ni arquitectura.
+
+**Decisión:** se aplicó la opción 4 — cron de `Convert Resume Poller` cambiado de `7,22,37,52 * * * *` a `1,11,21,31,41,51 * * * *` (arranca ~54s después de cada disparo de `AI Screening Poller`, dejando ~4-5 min de margen real antes del siguiente). Las opciones 2 y 3 quedan documentadas como mejoras estructurales a evaluar a futuro, no descartadas de forma permanente.
+
+**Razón:** es el cambio de menor riesgo y menor esfuerzo que ataca la causa raíz confirmada (el solapamiento, responsable de al menos 3 de los 6 crashes conocidos) sin tocar nada que ya esté calibrado contra el rate limit real de JazzHR, sin costo adicional para el cliente, y sin requerir una sesión de migración de arquitectura completa. Como efecto colateral, también reduce la latencia reportada por el cliente (pasa de 4 a 6 ejecuciones/hora, barrido completo de ~105 min a ~70 min en el peor caso) sin necesidad de un cambio dedicado para eso.
+
+**Impacto:** `Convert Resume Poller` y `AI Screening Poller` ya no deberían volver a solaparse en memoria — verificado que el cambio no tocó `AI Screening Poller` de ninguna forma. No resuelve los ~3 crashes que fueron aislados (memoria propia de `Convert Resume Poller` por ciclo, no por solapamiento) — quedan pendientes en `seguimiento/plan-pendientes-oom-poller.md` junto con la migración a Railway y la conversación pendiente con FITS sobre el webhook pago.
 
 ---
 

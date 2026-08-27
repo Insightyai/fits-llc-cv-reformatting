@@ -874,3 +874,33 @@ Santiago reactivó los 3 manualmente ~20 min después de la alerta. Caída real:
 **Verificación:** reintroducido el bug (`"Name"` en vez de `{{ full_name }}`) en una copia temporal del template para confirmar que el smoke test nuevo sí lo detecta (falla como se espera) antes de dar el fix por bueno. Con el fix real aplicado: 86 tests (`pytest`) + smoke test 6/6 en verde.
 
 **Pendiente:** deploy a Railway (push dispara el deploy automático) — confirmar `/health` tras el push. No se reprocesó a Bryan Pagán Díaz ni a ningún otro candidato real — el fix queda listo para el próximo candidato Non Template que pase por el ciclo normal del Poller.
+
+### 27 Ago 2026 (misma sesión, más tarde) — `Convert Resume Poller` encontrado desactivado en medio de un caso real de latencia; reactivado por Santiago; verificado de punta a punta con 2 candidatos reales del primer ciclo
+
+**Contexto:** Santiago reportó que un reclutador de FITS movió un candidato a Convert Resume y quería confirmar si los fixes de latencia de estos días ya lo aceleraban. Se aclaró primero un punto de expectativa: el fix del cron del 26 ago (`7,22,37,52` → `1,11,21,31,41,51`, cada 10 min en vez de 15) bajó el peor caso del barrido completo de ~105 a ~70 min, pero no lo elimina — `CHUNK_SIZE` sigue en 20, el barrido sigue necesitando ~7 ciclos. Los fixes de contenido de estos días (`grounding.py`, `dates.py`, `agent.py`, `main.py`, footer de Non Template) no tocan la latencia en absoluto.
+
+**Al revisar el estado real vía API de n8n para confirmar el ciclo, se encontró que `Convert Resume Poller` estaba desactivado** (`active: false`), sin ningún crash nuevo registrado que lo explique (la última ejecución en el historial seguía siendo el crash del 26 ago 17:07 UTC, ya resuelto). De paso se confirmó que **`AI Screening Poller` también está desactivado** — no se tocó (fuera de alcance). Ambos habían caído juntos en el crash triple del 26 ago y, a diferencia de esa vez, no quedó claro si esta desactivación fue un crash silencioso nuevo o algo distinto — sin investigar la causa a fondo en esta sesión. Momento de la caída no determinado (pudo ser desde ayer a la noche).
+
+**Santiago reactivó `Convert Resume Poller` manualmente.** Verificado de punta a punta con los candidatos reales del primer ciclo posterior (arrancó puntual a las 16:21 UTC, ~4 min después de la reactivación, terminó ~16:25):
+- **Patrick Santiago Cintrón** (`candidateId 376703624`, job `10957825`, New Format) — el candidato que originó el reporte. Pipeline completo hasta `/transform`, bloqueado por `GROUNDING_FAILED`: 3 skills genéricas no verificadas (`Teamwork`, `Computer Proficiency`, `Adaptability`). Sospecha (sin confirmar): mismo riesgo ya documentado en `CONTRATO-AGENTE.md`/Fase 5 — el modelo infiere una lista de skills parafraseando la experiencia cuando el CV no trae una sección explícita. Pendiente investigar contra el CV real (necesita cookie de sesión fresca).
+- **Paola Maldonado Pereira** (`candidateId 405143448`, job `10993215`, New Format) — procesada con éxito, `state=review`, `.docx` generado y subido normalmente.
+
+**Isamar Pérez Rivera** (el segundo candidato del reporte original de Santiago) no salió en este ciclo — cae en otro chunk de la rotación de `CHUNK_SIZE=20`, se espera en un ciclo posterior dentro del barrido de ~70 min.
+
+**Pendiente:**
+1. Investigar el bloqueo de Patrick Santiago Cintrón contra su CV real (mismo método que los 3 candidatos de la sesión de la mañana) para confirmar si es alucinación real o falso positivo.
+2. Confirmar que Isamar Pérez Rivera se procese en un ciclo posterior.
+3. Investigar la causa de la desactivación silenciosa de `Convert Resume Poller`/`AI Screening Poller` (sin crash nuevo en el historial) — no se hizo en esta sesión.
+4. Seguir juntando casos reales de los patrones de falso positivo ya identificados (palabras pegadas, typos de candidatos) antes de tocar `grounding.py`/`extract.py` de nuevo.
+
+### 27 Ago 2026 (misma sesión, más tarde aún) — Bloqueo de Patrick Santiago Cintrón diagnosticado, resuelto (riesgo de la Fase 5 confirmado por primera vez con un candidato real), reprocesado
+
+**Diagnóstico:** descargado el CV real de Patrick (`candidateId 376703624`) vía `api.jazz.co` con cookie de sesión fresca. Su CV es de 1 página y no trae una sección de "Skills" con lista de ítems — solo un párrafo narrativo ("SKILLS SUMMARY: I'm highly organized... work well... as a part of a team... great with computers and able to adapt to new challenges"). El agente parafraseó ese párrafo en 3 ítems de skills (`Teamwork`, `Computer Proficiency`, `Adaptability`), ninguno de los cuales aparece literal en la fuente — no es una alucinación de datos falsos, es exactamente el riesgo ya anticipado el 30 jul 2026 (Fase 5, harness sintético) y dejado pendiente "de decidir con datos reales, no antes" (`Decisiones.md`). Este es el primer caso real que lo confirma.
+
+**Decisión de Santiago, entre las 2 salidas ya documentadas el 30 jul:** opción (a) — el prompt/schema instruyen dejar `skills: []` vacío en vez de inferir, en vez de (b) relajar `grounding.py` a "soft" para `skills[]`. Se descartó (b) por reabrir un archivo ya frágil (incidente real 2 días antes) y porque hay 2 casos reales ya documentados donde el bloqueo estricto de `skills[]` atrapó una invención genuina (Ruth Sotomayor "Competitive drive" 14 ago, Luis Moreno "Confined Space Rescue Certification" 17 ago) — bajar eso a warning los dejaría pasar también.
+
+**Fix aplicado:** `cv-schema.json` (descripción del campo `skills`, única fuente de verdad del `input_schema` de la tool — `tool_schema.py` lo deriva dinámicamente) y `prompt/transform-v1.md` (sección "Matices de campos") ahora instruyen explícitamente no inferir `skills[]` de un párrafo narrativo. Nuevo CV sintético `cvs-prueba/sinteticos/05-ingles-skills-narrativo-sin-lista.txt` (candidato inventado, mismo patrón exacto que el CV real de Patrick) + test nuevo en `test_synthetic_harness.py`, marcado `llm`. Verificado con llamada real a Claude: `skills: []`, `state=review`, nunca `failed`. 86 tests no-`llm` + smoke 6/6 + el test `llm` nuevo, todos en verde.
+
+**Verificado también contra el CV real de Patrick** (no solo el sintético, antes de dar el fix por bueno): mismo resultado, `skills: []`, `state=review`, sin `GROUNDING_FAILED`.
+
+**Pendiente:** documentar + commit + push (dispara deploy a Railway), reprocesar a Patrick en producción real (webhook interno del Processor, mismo patrón ya usado con Willard Marrero en agosto) una vez confirmado el deploy.

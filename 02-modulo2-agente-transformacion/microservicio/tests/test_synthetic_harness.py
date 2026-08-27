@@ -125,3 +125,19 @@ def test_ingles_summary_pobre(api_key):
 
     text = _all_text(cv)
     assert not I_STATEMENT_RE.search(text)
+
+
+def test_ingles_skills_narrativo_sin_lista(api_key):
+    # Caso real: Patrick Santiago Cintron (27 ago 2026) -- un CV cuyo "SKILLS SUMMARY"
+    # es un parrafo narrativo, sin lista de items. Antes de este fix el agente inferia
+    # una lista parafraseando el parrafo (ej. "Teamwork", "Computer Proficiency",
+    # "Adaptability"), y como esos tokens nunca aparecen literales en la fuente,
+    # GROUNDING_TOKEN_NOT_FOUND bloqueaba el CV entero como failed. Riesgo ya
+    # anticipado en la Fase 5 (30 jul, ver Decisiones.md) -- este es el primer caso
+    # real que lo confirma. Fix: cv-schema.json + el prompt ahora instruyen dejar
+    # skills:[] vacio en vez de inferir.
+    cv, state, elapsed = _run("05-ingles-skills-narrativo-sin-lista.txt", api_key)
+
+    assert elapsed < SLA_BUDGET_SECONDS
+    assert state in ("ok", "review")  # nunca "failed" por skills inferidos
+    assert cv["skills"] == []
