@@ -41,7 +41,17 @@ def render(template_id, cv):
 def check(template_id, fixture_name, cv):
     raw = render(template_id, cv)
     d = docx.Document(io.BytesIO(raw))
-    full_text = "\n".join(p.text for p in d.paragraphs)
+    # d.paragraphs NO incluye headers/footers de seccion (mismo punto ciego que tuvo
+    # extract.py, corregido ahi el 25 ago 2026 -- aca del lado del render, no de la
+    # extraccion). Sin esto, un footer con un tag sin resolver o un placeholder
+    # literal ("Name" en vez de {{ full_name }}, bug real de Non Template encontrado
+    # el 27 ago 2026) pasa el smoke test sin que nadie lo note.
+    header_footer_text = "\n".join(
+        p.text
+        for section in d.sections
+        for p in list(section.header.paragraphs) + list(section.footer.paragraphs)
+    )
+    full_text = "\n".join(p.text for p in d.paragraphs) + "\n" + header_footer_text
 
     assert "{{" not in full_text and "{%" not in full_text, "quedo un tag sin resolver"
     assert "None" not in full_text, "un campo null se imprimio como 'None' literal"
