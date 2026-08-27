@@ -903,4 +903,6 @@ Santiago reactivó los 3 manualmente ~20 min después de la alerta. Caída real:
 
 **Verificado también contra el CV real de Patrick** (no solo el sintético, antes de dar el fix por bueno): mismo resultado, `skills: []`, `state=review`, sin `GROUNDING_FAILED`.
 
-**Pendiente:** documentar + commit + push (dispara deploy a Railway), reprocesar a Patrick en producción real (webhook interno del Processor, mismo patrón ya usado con Willard Marrero en agosto) una vez confirmado el deploy.
+**Documentado, commiteado (`d676c63`), pusheado y desplegado.** `/health` confirmado OK tras el deploy.
+
+**Reproceso real de Patrick, exitoso de punta a punta:** disparado vía el webhook interno del Processor (`POST https://fits.app.n8n.cloud/webhook/jazzhr-convert-resume`, header `x-internal-token`, body `{candidateId: "376703624", jobId: "10957825", stepId: "10727655", format: "new_format"}` — mismo patrón ya usado con Willard Marrero en agosto, sin pasar por el Poller). Respuesta: `{"success":true,"resultado":"OK","emailSent":true}`, `.docx` subido a SharePoint. Correo al reclutador enviado de inmediato (14:00 AST, jueves — dentro del horario laboral, sin encolar).
