@@ -183,3 +183,28 @@ def test_omitted_job_is_section_coverage_warning(clean_cv, source_text):
     cv["experience"] = [cv["experience"][0]]
     report = grounding.evaluate(cv, source_text)
     assert any(w.startswith("SECTION_COVERAGE_LOW") for w in report.warnings)
+
+
+def test_partially_invented_multiword_company_is_error(clean_cv, source_text):
+    # hallazgo Codex 24 ago: _check_source_backed usaba any() sobre los tokens
+    # significativos -- una empresa de 2+ palabras donde solo UNA es real pasaba
+    # sin error porque bastaba que un token matcheara. El mecanismo "anti-invencion"
+    # debe exigir que TODOS los tokens significativos aparezcan en la fuente.
+    cv = copy.deepcopy(clean_cv)
+    real_company = cv["experience"][0]["company"]
+    cv["experience"][0]["company"] = f"{real_company} Analytics"
+    report = grounding.evaluate(cv, source_text)
+    assert any(e.startswith("GROUNDING_TOKEN_NOT_FOUND") for e in report.errors)
+
+
+def test_metric_that_is_substring_of_longer_source_number_is_still_error(clean_cv, source_text):
+    # hallazgo Codex 24 ago: el fix de ISO 14001 (14 ago) volvio el chequeo de
+    # source_despaced un substring sin limites -- una metrica inventada que casualmente
+    # es substring de un numero mas largo y contiguo de la fuente (ej. "500" dentro de
+    # "1500", sin coma que los separe) pasaba sin error. Debe seguir marcando error
+    # salvo que el numero completo aparezca como tal.
+    cv = copy.deepcopy(clean_cv)
+    cv["experience"][0]["bullets"][0] = "Managed a team of 500 engineers."
+    padded_source = source_text + " Processed batch code 1500 during the audit."
+    report = grounding.evaluate(cv, padded_source)
+    assert any("GROUNDING_METRIC_NOT_FOUND" in e and "500" in e for e in report.errors)

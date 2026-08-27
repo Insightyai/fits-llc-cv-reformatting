@@ -754,3 +754,91 @@ Devuelve un array con todo el historial de actividad del `projob` (cambios de et
 5. Pendientes de sesiones anteriores sin cambios: Bug 1 (confirmar más ciclos sin 429), auditar `POST /render` por el mismo patrón de `neverError` faltante, batch de fixes de `grounding.py`/`main.py`/`agent.py`/`dates.py` de la auditoría de Codex del 24 ago, avisar a `eterron@fitspr.com`/`paolarod@fitspr.com` (bloqueado por token OAuth de Gmail vencido).
 
 **Lección:** el mismo síntoma de OOM puede tener el mismo fix parcial repetido varias veces sin resolverse del todo — cuando un "fix" reduce la frecuencia de un problema pero el síntoma reaparece semanas después en un nodo distinto, vale la pena tratarlo como una señal de límite estructural (memoria de la instancia, volumen de datos por ciclo) en vez de seguir parchando síntoma por síntoma. Y en extracción de texto de documentos reales, cualquier función que solo lea el "cuerpo" de un formato rico (párrafos, sin tablas, sin headers/footers, sin cuadros de texto) va a toparse tarde o temprano con un CV real que puso información clave fuera de esa sección — ya van dos puntos ciegos reales de `extract.py` en esta categoría (tablas señaladas por Codex, headers confirmado hoy).
+
+### 26 Ago 2026 — Latencia alta del Convert Resume Poller: webhook de JazzHR descartado por costo, plan de fix definido para próxima sesión (sin aplicar todavía)
+
+**Reporte de Santiago:** Natalia (FITS) movió a Miguel Rivera Palou a "CONVERT RESUME-NEW FORMAT" y pasó más de 1 hora sin procesarse. Causa confirmada: el escaneo rotativo del Poller (fix de rate limit del 18 ago, `CHUNK_SIZE=20` de ~134-135 combinaciones job+etapa, barrido completo cada ~7 ciclos de 15 min) implica **hasta ~1h45 de espera en el peor caso** para que le toque el turno a un candidato recién movido — no es un bug nuevo, es el tradeoff conocido de ese fix.
+
+**Opción webhook investigada y descartada.** La nota técnica de Fase 1 (`fits-llc/01-modulo1-diagnostico/entregables/nota-tecnica-api-jazzhr.md:130-167`) había dejado pendiente sin resolver la disponibilidad de "Triggers" de JazzHR. Una entrada de `fits-llc/seguimiento/bitacora-m2.md` (14 may) daba por "confirmado" que JazzHR no tiene webhooks, pero sin evidencia documentada de cómo se verificó. Investigación web confirmó que el feature vigente hoy (terminología distinta a la de la nota de Fase 1) es **Candidate Export Integration + Workflow Helper** (Settings → Integrations + Settings → Workflows → [etapa] → Add) — sí soporta disparo por etapa específica del pipeline, encajaría exacto con "Convert Resume - [Formato]". **Santiago confirmó que FITS no tiene ese add-on contratado y no está dispuesto a pagar el costo adicional (~$27-29 USD/mes)** — descarta esta vía por decisión de negocio del cliente, no por limitación técnica.
+
+**Opción de subir `CHUNK_SIZE` evaluada y descartada.** El Poller ya tuvo 4 crashes por OOM entre el 19 y 25 de ago con el chunk actual (20), sin causa raíz resuelta (ver entrada del 25 ago arriba) — subir el volumen de datos por ejecución iría en la dirección contraria a la única mitigación ya anotada por el equipo (reducir el chunk, no subirlo).
+
+**Decisión (confirmada con Santiago):** en la próxima sesión, aumentar la frecuencia del cron del Poller (de cada 15 min a ~8-10 min, cadencia exacta a definir contra los minutos reales de disparo de `AI Screening Poller` para no chocar con `:30`) **sin tocar `CHUNK_SIZE`**, y agregar un guard anti-solapamiento de ejecuciones (hoy inexistente) aprovechando los campos `lastRunStart`/`lastRunEnd` que ya existen en `staticData` pero hoy son solo informativos. Plan detallado (pasos, verificación) guardado en `/Users/santiagociurlo/.claude-trabajo/plans/quiet-jumping-mango.md` — arrancar la próxima sesión desde ese archivo.
+
+**Sin aplicar todavía** — ningún cambio real se hizo en el workflow de n8n en esta sesión, solo investigación y planificación.
+
+### 26 Ago 2026 (más tarde) — Crash simultáneo de 3 workflows por OOM, autodesactivados por n8n y reactivados manualmente por Santiago — patrón real de solapamiento entre los 2 pollers, ya había pasado antes sin documentarse como tal
+
+**Reporte de Santiago:** recibió 3 correos de n8n ("has automatically deactivated [workflow] due to repeated crashes") y tuvo que reactivar los 3 workflows a mano — no fue una autorecuperación (primera lectura equivocada de esta sesión, corregida por Santiago).
+
+**Confirmado vía API de n8n:** a las **17:07–17:10 UTC** crashearon casi juntos, todos con `WorkflowCrashedError: Workflow did not finish, possible out-of-memory issue`:
+- `JazzHR - Convert Resume Poller` (`6gxbJ87rfAsbcCOO`) — arrancó 17:07:00, último nodo `Fetch Projobs`.
+- `JazzHR - AI Screening Poller` (`aaA8NX20TGhVVEM1`) — 17:10:06, último nodo `¿Lectura del Log OK?`.
+- `JazzHR - AI CV Screening` (`Zd3EfdxkOIgFpkvC`, modo webhook) — 17:10:42, último nodo `Respond Aceptado`.
+
+Santiago reactivó los 3 manualmente ~20 min después de la alerta. Caída real: ~20-25 min, no las ~2h que sugería (erróneamente) la ausencia de ejecuciones posteriores en el historial — los 3 workflows tienen `saveDataSuccessExecution: "none"`, así que una corrida exitosa no deja registro (mismo patrón de falsa señal ya documentado el 20 y 25 ago).
+
+**Causa raíz identificada — solapamiento real entre los 2 pollers, no un evento aislado:** `Convert Resume Poller` corre en los minutos `7,22,37,52` (cron) y tarda ~4-5 min por ciclo (medido el 18 ago: ~4m25s). `AI Screening Poller` corre cada 10 minutos exactos (`minutesInterval: 10`, sin offset — dispara en `:X0:06`), dato que no estaba documentado en el repo hasta ahora. Cuando el ciclo de Convert Resume Poller que arranca en `:07` (o `:37`) sigue corriendo ~3 minutos después, coincide con el siguiente disparo de AI Screening Poller en `:10` (o `:40`) — los dos pollers pesados de la instancia compiten por memoria al mismo tiempo, y cuando ese ciclo puntual es lo bastante grande, la instancia hace OOM y se lleva a los 3 workflows activos en ese momento (los 2 pollers + lo que dispara AI CV Screening).
+
+**Revisando el historial completo, este patrón exacto ya había pasado dos veces antes, el mismo día (19 ago), con la misma secuencia de tiempos:**
+- 19 ago 12:37:00 (Convert Resume Poller) → 12:40:06 (AI Screening Poller) → 12:40:46 y 12:41:07 (AI CV Screening).
+- 19 ago 14:07:00 (Convert Resume Poller) → 14:10:06 (AI Screening Poller) → 14:10:46 y 14:11:07 (AI CV Screening).
+
+**La entrada del 25 ago de esta bitácora contaba "4 crashes por OOM" del Poller como eventos aislados en nodos distintos — subestimaba el problema:** 2 de esos 4 (los del 19 ago) fueron en realidad este mismo triple crash, no un problema puntual de un nodo. De los ~6 crashes OOM de Convert Resume Poller conocidos a la fecha, 3 (19 ago x2, 26 ago x1) siguen este patrón de solapamiento con AI Screening Poller; los otros 3 (20, 21, 25 ago) fueron aislados — probablemente porque ese ciclo puntual no llegó a solaparse en el tiempo, o no fue lo bastante pesado en memoria.
+
+**Implicación directa para el plan ya guardado (`/Users/santiagociurlo/.claude-trabajo/plans/quiet-jumping-mango.md`):** ese plan proponía subir la frecuencia de Convert Resume Poller a cada 8-10 min para bajar la latencia, calculando el nuevo cron solo contra el minuto `:30` (colisión ya resuelta el 14 ago). No contemplaba que AI Screening Poller corre cada 10 min todo el tiempo — con Convert Resume Poller también cada ~8-10 min y ~4-5 min de duración propia, el solapamiento que hoy es intermitente (3 de ~6 veces) pasaría a ser casi permanente. **El plan necesita revisarse antes de aplicarse** para evitar agravar el problema que se acaba de confirmar, no solo optimizar contra `:30`.
+
+**Sin aplicar ningún cambio en n8n en esta sesión** — solo investigación (vía API, `GET` de ejecuciones y workflows) y documentación. Decisión de Santiago: investigar más a fondo antes de tocar el plan (pendiente para próxima sesión).
+
+**Pendiente:**
+1. Revisar `quiet-jumping-mango.md` contra este hallazgo antes de aplicar cualquier cambio de cron.
+2. Evaluar si el guard anti-solapamiento ya planeado (Cambio 2 del plan) debería cubrir también el solapamiento *entre* pollers (Convert Resume vs. AI Screening), no solo el autosolapamiento de un mismo workflow entre ciclos.
+3. Pendientes de sesiones anteriores sin cambios (ver entradas del 24 y 25 ago).
+
+### 26 Ago 2026 (aún más tarde) — Investigación a fondo del OOM + fix de cron aplicado en producción; `quiet-jumping-mango.md` reemplazado
+
+**Pedido de Santiago:** investigar a fondo cómo resolver el OOM de raíz, evaluar alternativas al doble poller (incluida sacar el polling de n8n), y usar `/codex:setup` como apoyo. Sesión en modo plan, con aprobación explícita antes de tocar producción.
+
+**Investigación (agentes en paralelo — 2 Explore, 1 Plan, 1 `codex:codex-rescue`, más inspección directa del JSON de los 3 workflows vía API):**
+- **JazzHR API:** confirmado que no existe ningún endpoint de "actividad global"/"modificados desde fecha X" (ya se habían probado y descartado `/statusHistory`, `/timeline`, `/activity` sin params). El webhook nativo (Candidate Export Integration + Workflow Helper, ~$27-29 USD/mes) sigue siendo la única alternativa real, decisión de negocio pendiente con el cliente.
+- **Microservicio en Railway:** confirmado técnicamente viable mover el polling ahí (falta `httpx`, un disparador periódico —Railway Cron Job recomendado—, portar el dedup, y la credencial `JazzHR Cookie` como env var). Cambio de arquitectura grande, no aplicado esta sesión.
+- **Inspección directa de los 16 nodos de `Convert Resume Poller`:** confirmé 2 vectores reales de memoria además del solapamiento: `Preparar Páginas` genera `pages=15` hardcodeado (hasta 7.500 registros de `Listar Jobs` por ciclo, sin verificar el volumen real), y `Leer Log Real` trae el Sheet de log completo (`Sheet1!B:H`) sin ningún límite, creciendo indefinidamente desde agosto.
+- **Comparación con `AI Screening Poller`** (mismo patrón base, no se toca): ese workflow ya tiene un nodo `Reducir Payload Jobs` (recorta cada job a 5 campos antes de seguir el pipeline) que `Convert Resume Poller` no tiene — patrón ya probado en producción, portable directo. También tiene dedup más maduro (límite de reintentos, fail-closed explícito, Sheet recortado a 2 columnas) — **Santiago decidió dejar esas mejoras de robustez fuera de esta ronda**, foco estricto en OOM + latencia.
+- La primera propuesta de cron de la IA colaboradora de diseño tenía un error de cálculo (decía "~12 min de margen" cuando el margen real era ~2m41s) — corregido antes de aplicar nada, usando en cambio la propuesta de Codex (arrancar justo después de cada disparo de AI Screening Poller, no 3 min después) que da ~4-5 min de margen real.
+
+**Plan escrito y aprobado:** `/Users/santiagociurlo/.claude-trabajo/plans/investiguemos-a-fondo-quiero-majestic-crab.md` — reemplaza a `quiet-jumping-mango.md` (obsoleto, no contemplaba el solapamiento con `AI Screening Poller`). Resumen de las capas: Capa 0 (verificar volumen real de jobs, pendiente), **Capa 1 (aplicada hoy)**, Capa 2 (reducir memoria por ciclo, pendiente), Fase 2 (migración a Railway, opcional/futura).
+
+**Capa 1 aplicada en producción sobre `Convert Resume Poller` (`6gxbJ87rfAsbcCOO`):**
+- Cron de `Cada 15 Minutos`: `7,22,37,52 * * * *` → `1,11,21,31,41,51 * * * *` (arranca ~54s después de cada disparo de `AI Screening Poller`, en vez de 3 min después — deja ~4m19s-4m41s de margen real antes del siguiente disparo, contra la duración medida de ~4m25s-4m47s).
+- Umbral del guard anti-solapamiento en `Preparar Páginas`: `9 * 60 * 1000` → `8 * 60 * 1000` (recalibrado para el nuevo cron de 10 min).
+- Efecto colateral: 4 → 6 ejecuciones/hora, barrido completo baja de ~105 min a ~70 min en el peor caso — mejora la latencia sin tocar `CHUNK_SIZE` ni el `batchInterval` de `Fetch Projobs`.
+
+**Verificación antes de aplicar:** snapshot `GET` de ambos workflows guardado como referencia de rollback; diff del body del `PUT` confirmado (solo los 2 nodos esperados cambiaron, `connections`/`settings` intactos, mismo número de nodos). No se disparó `Trigger Manual` para verificar el volumen de jobs (Capa 0) — se descartó por riesgo: ese nodo corre el pipeline completo real (puede generar `.docx`, subir a SharePoint y encolar/enviar correos reales), no es una prueba segura para solo contar jobs.
+
+**Verificación después de aplicar:** `GET` confirmó `cronExpression` y umbral del guard persistidos, `active: true` sin tocar, 16 nodos (mismo número). **`AI Screening Poller` verificado sin ningún cambio** (`nodes`/`connections`/`settings`/`active` idénticos al snapshot previo). Monitoreo de 1-2h programado para confirmar con ejecuciones reales que no hay solapamiento ni crashes nuevos.
+
+**Pendiente:**
+1. Confirmar resultado del monitoreo de 1-2h post-cambio (crashes nuevos, timestamps reales sin coincidir con `AI Screening Poller`).
+2. Pedirle a Santiago el volumen real de jobs en JazzHR (Capa 0) — "10 workflows activos" que ya se sabía no es este dato (son las plantillas de pipeline, no el total de posiciones).
+3. Aplicar Capa 2 (portar `Reducir Payload Jobs`, ajustar `pages` si aplica, acotar `Leer Log Real` si aplica) una vez confirmada la Capa 1.
+4. Detalle completo del plan y los pendientes en `seguimiento/plan-pendientes-oom-poller.md` (nuevo) y en `Decisiones.md` (decisión de fondo documentada aparte).
+
+**Lección:** cuando una IA colaboradora (subagente de diseño) propone un cron o cálculo de margen concreto, verificar la aritmética a mano antes de aplicarlo — el error no era conceptual (la idea de sincronizar con el poller intocable era correcta) sino un error de resta simple que habría dejado un margen real 5x menor al reportado.
+
+### 26 Ago 2026 (sesión siguiente) — Verificación en vivo del fix de OOM/cron, y batch de 5 fixes de la auditoría de Codex del 24 ago aplicado y verificado
+
+**Verificación del fix de cron aplicado horas antes (Capa 1):** consultado directamente el historial real de ejecuciones vía API de n8n (no solo la bitácora) de `Convert Resume Poller`, `AI Screening Poller`, `AI CV Screening` y el `Processor`. Confirmado: `updatedAt` del Poller a las 21:54 UTC (cron nuevo `1,11,21,31,41,51 * * * *` persistido, `active: true`), **0 crashes y 0 errores nuevos** en los 3 workflows desde el crash simultáneo de las 17:07-17:10 UTC que originó el fix. Capturado un ciclo real corriendo con el cron nuevo (arrancó 23:41 UTC, uno de los minutos configurados) que se completó sin dejar rastro de error — comportamiento esperado por `saveDataSuccessExecution: "none"` (mismo patrón de "falsa ausencia" ya documentado el 20 y 25 ago), no evidencia de caída. Ventana de monitoreo real corta (~2h), pero sin señal de alarma. Pendientes de Capa 0/Capa 2 sin cambios (ver `seguimiento/plan-pendientes-oom-poller.md`).
+
+**Batch de 5 fixes de la auditoría de Codex del 24 ago, aplicado con TDD puro (sin candidato real involucrado, contra el fixture de Shirley Mercado y fixtures sintéticos nuevos):**
+
+1. `grounding.py::_check_source_backed` (mecanismo de `GROUNDING_TOKEN_NOT_FOUND`) usaba `any()` sobre los tokens significativos de `company`/`certifications`/`skills` — bastaba que UN token de un nombre de varias palabras coincidiera con la fuente para pasar, dejando pasar alucinaciones parciales (ej. empresa real + palabra inventada agregada). Cambiado a `all()`.
+2. `grounding.py::_check_metrics` contra `source_despaced` era un substring sin límites (efecto colateral del fix de ISO 14001 del 14 ago) — una métrica inventada que casualmente fuera substring de un número más largo y contiguo de la fuente pasaba sin error. Acotado con límites de dígito (`(?<!\d)...(?!\d)`), sin romper el caso ISO 14001 original.
+3. `dates.py::combine_periods` podía combinar el inicio de un rol con fin no interpretable con el fin de un rol completamente distinto — ahora ambos extremos del mismo período deben parsear juntos antes de contribuir al rango combinado.
+4. `agent.py::transform` pisaba el `usage` (tokens) de la primera llamada con el del retry de reparación de schema — subreportaba tokens reales justo en el caso más caro. Ahora se suman.
+5. Batch de `main.py` sin riesgo de regresión: JSON válido pero no-objeto (array/null) devuelve 400 en vez de 500; `Content-Length` no numérico ya no crashea el middleware; comparación de `X-API-Key` con `hmac.compare_digest` (constant-time); `full_name` sanitizado (sin `\r\n`/caracteres de control) antes del header `Content-Disposition`.
+
+**Decisión explícita de Santiago, consultada antes de tocar código:** no endurecer `GROUNDING_METRIC_NOT_FOUND` para CVs traducidos (dejar la degradación a warning tal como está) — sin evidencia real todavía de que el LLM abuse de esa regla para colar números inventados; se mide con el set real de FITS en Fase 7 antes de decidir. Tampoco se tocó `extract.py` (tablas ignoradas en `_extract_docx`) — sigue pendiente de confirmar con un CV real de FITS que use tablas de layout.
+
+**Verificación:** cada fix con test de regresión escrito primero (falla antes del fix, pasa después — confirmado explícitamente para los 5). Suite completa: 86 tests en verde (6 marcados `llm`, opt-in, sin correr). Documentado el cambio de comportamiento de `GROUNDING_TOKEN_NOT_FOUND` (any→all) también en `agente/CONTRATO-AGENTE.md`, con nota de riesgo nuevo a vigilar (nombre legítimo de varias palabras con variación de escritura real podría generar un falso positivo que antes `any()` toleraba — sin evidencia todavía).
+
+**Pendiente:** deploy a Railway (push a `main` dispara el deploy automático) — confirmar en Railway que el build pasa tras el push. Riesgo nuevo del punto 1 (any→all) a vigilar quedó anotado en `CONTRATO-AGENTE.md` para revisar junto con el resto de hallazgos de la Fase 7 (set real de CVs de FITS).

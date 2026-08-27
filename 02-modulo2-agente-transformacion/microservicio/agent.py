@@ -1,6 +1,7 @@
 import hashlib
 import json
 import pathlib
+from collections import namedtuple
 
 import anthropic
 import jsonschema
@@ -15,6 +16,13 @@ CV_SCHEMA_PATH = BASE_DIR / "contrato-datos" / "cv-schema.json"
 
 MODEL = "claude-sonnet-5"
 MAX_TOKENS = 16000
+
+
+Usage = namedtuple("Usage", ["input_tokens", "output_tokens"])
+
+
+def _sum_usage(a, b):
+    return Usage(a.input_tokens + b.input_tokens, a.output_tokens + b.output_tokens)
 
 
 class TransformError(Exception):
@@ -110,7 +118,8 @@ def transform(cv_text, now, api_key=None, client=None, extract_warnings=None):
     try:
         jsonschema.validate(cv, schema)
     except jsonschema.ValidationError as exc:
-        cv, usage = _call_claude(client, system, cv_text, repair_note=str(exc))
+        cv, retry_usage = _call_claude(client, system, cv_text, repair_note=str(exc))
+        usage = _sum_usage(usage, retry_usage)
         cv = _postprocess(cv, now, schema)
         try:
             jsonschema.validate(cv, schema)

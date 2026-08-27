@@ -1,8 +1,10 @@
 import base64
 import binascii
+import hmac
 import io
 import json
 import os
+import re
 from datetime import date
 from email.utils import encode_rfc2231
 from pathlib import Path
@@ -60,17 +62,36 @@ def load_schema_and_check_templates():
 async def enforce_max_body_size(request: Request, call_next):
     limit = ROUTE_BODY_LIMITS.get(request.url.path, MAX_BODY_BYTES)
     content_length = request.headers.get("content-length")
-    if content_length is not None and int(content_length) > limit:
-        return JSONResponse(
-            status_code=413,
-            content={"error": f"Cuerpo del request excede el límite de {limit} bytes."},
-        )
+    if content_length is not None:
+        try:
+            declared_size = int(content_length)
+        except ValueError:
+            declared_size = None
+        if declared_size is not None and declared_size > limit:
+            return JSONResponse(
+                status_code=413,
+                content={"error": f"Cuerpo del request excede el límite de {limit} bytes."},
+            )
     return await call_next(request)
 
 
 def check_api_key(x_api_key: str = Header(default=None)):
-    if not x_api_key or x_api_key != API_KEY:
+    if not x_api_key or not hmac.compare_digest(x_api_key, API_KEY):
         raise HTTPException(status_code=401, detail="X-API-Key inválida o ausente.")
+
+
+_CONTROL_CHARS_RE = re.compile(r"[\r\n\x00-\x1f\x7f]")
+
+
+def _sanitize_filename_field(value):
+    return _CONTROL_CHARS_RE.sub("", value or "")
+
+
+def _parse_json_object_body(raw_body):
+    body = json.loads(raw_body)
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail="Body debe ser un objeto JSON.")
+    return body
 
 
 @app.get("/health")
@@ -83,7 +104,7 @@ async def render(request: Request, x_api_key: str = Header(default=None)):
     check_api_key(x_api_key)
 
     try:
-        body = await request.json()
+        body = _parse_json_object_body(await request.body())
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Body no es JSON válido.")
 
@@ -129,7 +150,7 @@ async def render(request: Request, x_api_key: str = Header(default=None)):
     except Exception:
         raise HTTPException(status_code=500, detail="El .docx generado no pasó la verificación de integridad.")
 
-    filename = f"{cv.get('full_name', 'resume')}.docx"
+    filename = f"{_sanitize_filename_field(cv.get('full_name', 'resume'))}.docx"
     ascii_fallback = filename.encode("ascii", errors="replace").decode("ascii")
     encoded = encode_rfc2231(filename, charset="utf-8")
     content_disposition = f'attachment; filename="{ascii_fallback}"; filename*={encoded}'
@@ -146,7 +167,7 @@ async def transform_endpoint(request: Request, x_api_key: str = Header(default=N
     check_api_key(x_api_key)
 
     try:
-        body = await request.json()
+        body = _parse_json_object_body(await request.body())
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Body no es JSON válido.")
 

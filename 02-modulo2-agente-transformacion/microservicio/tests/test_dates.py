@@ -121,3 +121,14 @@ def test_combine_periods_ignores_unparseable_entries():
 def test_combine_periods_all_unparseable_falls_back_to_first():
     combined = combine_periods(["sometime a while ago", "who knows"])
     assert combined == "sometime a while ago"
+
+
+def test_combine_periods_does_not_mix_start_and_end_of_different_partial_periods():
+    # hallazgo Codex 24 ago: un periodo con inicio valido pero fin no interpretable
+    # ("Jan 2018 - Foo") no debe prestar su inicio a la combinacion si su propio fin
+    # nunca se pudo verificar como parte de un periodo coherente -- antes del fix,
+    # el inicio de ese periodo "Frankenstein" se combinaba igual con el fin de otro
+    # periodo completamente distinto y valido, inventando un rango que ningun periodo
+    # individual respalda de punta a punta.
+    combined = combine_periods(["Jan 2018 - Foo", "Jun 2020 - Present"])
+    assert combined == "Jun 2020 – Present"

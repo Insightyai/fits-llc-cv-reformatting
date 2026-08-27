@@ -121,3 +121,49 @@ def test_transform_body_exceeding_its_own_limit_returns_413(client):
     huge = b"x" * (MAX_TRANSFORM_BODY_BYTES + 100_000)
     r = client.post("/transform", json=_body(content=huge), headers=_auth())
     assert r.status_code == 413
+
+
+def test_json_array_body_returns_400_not_500(client):
+    # hallazgo Codex 24 ago: solo se atrapaba JSONDecodeError -- un JSON valido que
+    # no es un objeto (array/string/null) pasaba el parseo y despues tiraba
+    # AttributeError al hacer body.get(...), devolviendo 500 en vez de 400.
+    r = client.post("/transform", content=b"[1, 2, 3]", headers={**_auth(), "Content-Type": "application/json"})
+    assert r.status_code == 400
+
+
+def test_json_null_body_returns_400_not_500(client):
+    r = client.post("/render", content=b"null", headers={**_auth(), "Content-Type": "application/json"})
+    assert r.status_code == 400
+
+
+def test_non_numeric_content_length_header_does_not_crash(client):
+    # hallazgo Codex 24 ago: int(content_length) sin guard -- un header Content-Length
+    # no numerico tiraba ValueError sin atrapar, devolviendo 500 en vez de procesar
+    # el request normalmente (el limite de tamano real se sigue aplicando al leer el
+    # body, este header es solo una verificacion temprana best-effort).
+    r = client.post(
+        "/transform",
+        content=b"esto no es json",
+        headers={**_auth(), "Content-Length": "not-a-number"},
+    )
+    assert r.status_code == 400
+
+
+def test_api_key_comparison_uses_constant_time_compare(client, monkeypatch):
+    # hallazgo Codex 24 ago: x_api_key != API_KEY es comparacion caracter-a-caracter
+    # con corto-circuito, vulnerable a timing attack. hmac.compare_digest no filtra
+    # tiempo por longitud del prefijo correcto. Test de humo: confirma que sigue
+    # rechazando una key incorrecta (comportamiento observable, no mide timing real).
+    r = client.post("/transform", json=_body(), headers={"X-API-Key": API_KEY + "x"})
+    assert r.status_code == 401
+
+
+def test_sanitize_filename_field_strips_control_characters():
+    # hallazgo Codex 24 ago: full_name sin sanitizar antes de meterlo en el header
+    # Content-Disposition -- un full_name con \r\n (control characters) podria
+    # inyectar headers HTTP adicionales en la respuesta.
+    from main import _sanitize_filename_field
+
+    sanitized = _sanitize_filename_field("Ana\r\nX-Injected: evil")
+    assert "\r" not in sanitized
+    assert "\n" not in sanitized

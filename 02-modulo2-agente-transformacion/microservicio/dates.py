@@ -121,13 +121,17 @@ def combine_periods(periods):
         start_parsed = _parse_token(start_raw)
         if start_parsed is None or start_parsed == "present":
             continue
+        end_parsed = _parse_token(end_raw)
+        if end_parsed is None:
+            continue
+
+        # start y end del MISMO periodo se validan juntos antes de contribuir --
+        # si el fin de este periodo no parsea, su inicio tampoco debe "prestarse"
+        # a la combinacion con el fin de otro periodo distinto (ver test Codex).
         start_idx = _to_index((start_parsed[0], start_parsed[1]))
         if best_start is None or start_idx < best_start[0]:
             best_start = (start_idx, start_raw)
 
-        end_parsed = _parse_token(end_raw)
-        if end_parsed is None:
-            continue
         is_present = end_parsed == "present"
         end_idx = float("inf") if is_present else _to_index((end_parsed[0], end_parsed[1]))
         if best_end is None or end_idx > best_end[0] or (end_idx == best_end[0] and is_present):

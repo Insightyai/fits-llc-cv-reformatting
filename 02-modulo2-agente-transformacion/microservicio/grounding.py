@@ -109,7 +109,7 @@ def _check_source_backed(value, source_words, error_code, warning_code, report, 
     if not tokens:
         report.warnings.append(f"{warning_code}: {label} sin tokens verificables")
         return
-    if not any(t in source_words for t in tokens):
+    if not all(t in source_words for t in tokens):
         report.errors.append(f"{error_code}: {label} no aparece en la fuente")
 
 
@@ -146,9 +146,17 @@ def _check_i_statement(text, report):
         report.errors.append(f"GROUNDING_I_STATEMENT: {snippet!r}")
 
 
+def _metric_bounded_in_despaced(metric, source_despaced):
+    """True si `metric` aparece en el texto sin espacios sin quedar pegado a otro
+    digito (ej. '500' no debe matchear dentro de '1500000'). Existe para que el fix
+    de ISO 14001 (numero partido por un espacio fantasma de kerning) siga funcionando
+    sin volver el chequeo un substring sin limites."""
+    return re.search(rf"(?<!\d){re.escape(metric)}(?!\d)", source_despaced) is not None
+
+
 def _check_metrics(bullet, source_metrics, source_despaced, translated, report):
     for metric in extract_metrics(bullet):
-        if metric in source_metrics or metric in source_despaced:
+        if metric in source_metrics or _metric_bounded_in_despaced(metric, source_despaced):
             continue
         snippet = bullet[:60] + ("..." if len(bullet) > 60 else "")
         if translated:
