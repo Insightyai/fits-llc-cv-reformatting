@@ -105,11 +105,15 @@ def count_heuristic_jobs(source_text):
 
 
 def _check_source_backed(value, source_words, error_code, warning_code, report, label):
+    # any(), no all(): un all() se probo en produccion el 26 ago 2026 y en menos de
+    # un dia bloqueo 3/3 candidatos reales de prueba con paráfrasis legitima del LLM
+    # (ej. "MAX MRP II system" cuando la fuente solo dice "MRP system" en otro lado) --
+    # revertido el mismo dia. Ver seguimiento/bitacora.md, 27 ago 2026.
     tokens = significant_tokens(value)
     if not tokens:
         report.warnings.append(f"{warning_code}: {label} sin tokens verificables")
         return
-    if not all(t in source_words for t in tokens):
+    if not any(t in source_words for t in tokens):
         report.errors.append(f"{error_code}: {label} no aparece en la fuente")
 
 

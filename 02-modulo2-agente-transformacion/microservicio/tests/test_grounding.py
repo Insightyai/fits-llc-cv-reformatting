@@ -185,16 +185,21 @@ def test_omitted_job_is_section_coverage_warning(clean_cv, source_text):
     assert any(w.startswith("SECTION_COVERAGE_LOW") for w in report.warnings)
 
 
-def test_partially_invented_multiword_company_is_error(clean_cv, source_text):
-    # hallazgo Codex 24 ago: _check_source_backed usaba any() sobre los tokens
-    # significativos -- una empresa de 2+ palabras donde solo UNA es real pasaba
-    # sin error porque bastaba que un token matcheara. El mecanismo "anti-invencion"
-    # debe exigir que TODOS los tokens significativos aparezcan en la fuente.
+def test_partially_invented_multiword_company_is_warning_not_error(clean_cv, source_text):
+    # hallazgo Codex 24 ago: _check_source_backed usaba any() -- una empresa de 2+
+    # palabras donde solo UNA es real pasaba sin error. Se probo cambiar a all()
+    # (exigir todos los tokens) el 26 ago 2026, pero en produccion bloqueo 3/3
+    # candidatos reales de prueba por parafraseo legitimo del LLM en skills/company
+    # compuestas (ej. "MAX MRP II system" cuando la fuente solo dice "MRP system"
+    # en otro lado del texto) -- revertido a any() el mismo dia (27 ago, ver
+    # seguimiento/bitacora.md). Test actualizado para reflejar any() como
+    # comportamiento intencional, no solo "no probado". El riesgo de alucinacion
+    # parcial que motivo el intento sigue sin evidencia real, ver CONTRATO-AGENTE.md.
     cv = copy.deepcopy(clean_cv)
     real_company = cv["experience"][0]["company"]
     cv["experience"][0]["company"] = f"{real_company} Analytics"
     report = grounding.evaluate(cv, source_text)
-    assert any(e.startswith("GROUNDING_TOKEN_NOT_FOUND") for e in report.errors)
+    assert report.errors == []
 
 
 def test_metric_that_is_substring_of_longer_source_number_is_still_error(clean_cv, source_text):
