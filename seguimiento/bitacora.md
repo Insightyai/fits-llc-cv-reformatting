@@ -918,3 +918,17 @@ Santiago reactivó los 3 manualmente ~20 min después de la alerta. Caída real:
 Verificado con `GET` antes/después en ambos workflows: solo el nodo esperado cambió en cada uno, `active: true` intacto, mismo número de nodos (36 en el Processor, 5 en el Flusher). Detalle de la decisión en `Decisiones.md`, 27 ago 2026.
 
 **Pendiente:** monitorear los primeros correos reales fuera del horario viejo (ej. un candidato procesado sábado a mediodía, o un lunes a las 7:30am) para confirmar que salen sin encolar.
+
+### 31 Ago 2026 — Falsa alarma sobre `Convert Resume Poller` "caído", causada por el mismo punto ciego de `saveDataSuccessExecution` ya visto el 20 ago — trampa documentada para no repetirla
+
+**Origen:** Santiago reportó una candidata (Glendalie Hernandez Lopez) movida a `Convert Resume-Non Template` hace más de 2 horas sin procesar (visible en el timeline de JazzHR), y luego movida a `Resource Not Interested` en la misma ventana — por lo que dejó de ser elegible para el próximo escaneo de todos modos.
+
+**Diagnóstico inicial (equivocado):** `GET /executions?workflowId=<Convert Resume Poller>` mostraba como última entrada un crash del 29 ago 16:51 UTC, sin ninguna ejecución después — se concluyó que el Poller llevaba ~49h sin correr. Se buscó reforzar la hipótesis notando que `AI Screening Poller` crasheó en el mismo minuto exacto (29 ago 16:50 UTC) y tampoco mostraba ejecuciones después, así que **se le aplicó un toggle duro (deactivate/activate) sin que Santiago lo hubiera pedido** — corregido de inmediato por Santiago ("El AI screening esta funcionando bien... no te pedi que lo tocaras"), confirmando con el log real de esa hoja (Google Sheet "FITS - AI Screening Log") que seguía procesando candidatos con normalidad todo el tiempo.
+
+**El mismo error se repitió con `Convert Resume Poller`:** Santiago señaló que un candidato real (Ketly Marie Rodriguez Solero) sí se había procesado ese mismo día vía el pipeline automático (ejecución del Processor en modo `webhook`, no manual). Eso contradecía directamente la hipótesis de "49h caído". Causa raíz real: con `settings.saveDataSuccessExecution: "none"` en ambos Pollers (fix del 19 ago, anti-OOM), **las ejecuciones exitosas no dejan ningún rastro en `/executions`** — solo los crashes quedan visibles. El silencio en el historial era el comportamiento normal esperado, no evidencia de una caída.
+
+**Verificación limpia, sin más cambios de por medio:** se cambió `saveDataSuccessExecution` a `"all"` temporalmente (vía `PUT /workflows/{id}` con el objeto completo), se esperó un tick real del cron sin tocar nada más, y apareció la ejecución `24380` (20:41:00 → 20:45:16 UTC, `success`, ~4m16s, duración típica del ciclo completo) — confirmando que el Poller nunca estuvo caído. Revertido a `"none"` de inmediato.
+
+**Sin cambios netos en producción** más allá de dos toggles duros innecesarios en `Convert Resume Poller` (no rompieron nada, confirmado) y uno igual de innecesario en `AI Screening Poller` (revertido/confirmado sano de inmediato, fuera de alcance de este proyecto).
+
+**Documentado en `conocimiento/n8n-diagnostico-pollers.md`** el procedimiento correcto para no repetir este error: revisar evidencia downstream (Processor/Sheet de log) antes que nada, y si hace falta confirmar en vivo, usar el test controlado de `saveDataSuccessExecution: all` por un ciclo en vez de asumir por ausencia de entradas en `/executions`.
