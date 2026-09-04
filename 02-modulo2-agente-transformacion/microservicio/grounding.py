@@ -272,11 +272,24 @@ def evaluate(cv, source_text):
             cert, source_words, "GROUNDING_TOKEN_NOT_FOUND", "COMPANY_NOT_VERIFIABLE", report,
             label=f"certification={cert!r}",
         )
+    # skills_source="explicit" (el CV trae su propia lista): chequeo estricto, igual
+    # que company/certifications -- una skill agregada encima de una lista real no
+    # tiene excusa (caso real: Ruth Sotomayor Clavell, "Competitive drive" no existe
+    # en ningun lado de un CV que ya trae CORE COMPETENCIES + TECHNICAL SKILLS).
+    # skills_source="derived" (el CV no trae lista, el agente infiere de formacion +
+    # experiencia -- pedido real de FITS/Paola, asi trabaja un reclutador humano):
+    # chequeo soft, igual que title/institution -- nunca bloquea, solo advierte,
+    # porque una derivacion legitima por definicion parafrasea y no matchea token a
+    # token contra la fuente.
+    skills_source = cv.get("_meta", {}).get("skills_source")
     for skill in cv.get("skills", []):
-        _check_source_backed(
-            skill, source_words, "GROUNDING_TOKEN_NOT_FOUND", "COMPANY_NOT_VERIFIABLE", report,
-            label=f"skill={skill!r}",
-        )
+        if skills_source == "derived":
+            _check_literal_soft(skill, source_words, "SKILLS_DERIVED_NOT_VERIFIED", report)
+        else:
+            _check_source_backed(
+                skill, source_words, "GROUNDING_TOKEN_NOT_FOUND", "COMPANY_NOT_VERIFIABLE", report,
+                label=f"skill={skill!r}",
+            )
 
     heuristic_jobs = count_heuristic_jobs(source_text)
     if heuristic_jobs > len(experience):

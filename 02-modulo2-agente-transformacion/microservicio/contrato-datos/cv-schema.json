@@ -26,7 +26,7 @@
     "skills": {
       "type": "array",
       "items": {"type": "string"},
-      "description": "Lista de habilidades/competencias, tal como aparecen o normalizadas minimamente. No traducir terminologia tecnica/certificaciones a menos que el original ya este en otro idioma. Si el CV original NO trae una lista explicita de skills (solo un parrafo narrativo tipo 'Skills Summary'), dejar este array vacio -- nunca inferir items parafraseando la experiencia o un resumen narrativo."
+      "description": "Lista de habilidades/competencias. Nunca vacia salvo que el CV no tenga absolutamente ninguna base para derivarla (sin experiencia ni educacion/certificaciones). No traducir terminologia tecnica/certificaciones a menos que el original ya este en otro idioma. Si el CV original trae una lista explicita de skills/competencias, extraela tal como aparece (o normalizada minimamente) y marca `_meta.skills_source: 'explicit'`. Si el CV NO trae una lista explicita (solo un parrafo narrativo tipo 'Skills Summary', o ninguna seccion de skills), deriva la lista desde la formacion (educacion/certificaciones) y la experiencia concreta (responsabilidades/logros de experience[].bullets) -- nunca desde afirmaciones de personalidad o soft-skills genericas de un parrafo narrativo (ej. 'highly organized', 'great communication skills') -- y marca `_meta.skills_source: 'derived'`."
     },
     "experience": {
       "type": "array",
@@ -73,13 +73,18 @@
     },
     "_meta": {
       "type": "object",
-      "required": ["source_language", "translated", "prompt_version", "warnings"],
+      "required": ["source_language", "translated", "prompt_version", "warnings", "skills_source"],
       "additionalProperties": false,
       "description": "No se renderiza en el .docx. Uso interno: log de Sheets (Modulo 3) y auditoria.",
       "properties": {
         "source_language": {"type": "string", "description": "Idioma detectado del CV original (codigo ISO 639-1, ej. 'es', 'en')."},
         "translated": {"type": "boolean"},
         "prompt_version": {"type": "string", "description": "Version del prompt de transformacion usada (ver 02-modulo2-agente-transformacion/prompt/)."},
+        "skills_source": {
+          "type": "string",
+          "enum": ["explicit", "derived"],
+          "description": "'explicit' si `skills` viene de una lista propia del CV original; 'derived' si se infirio desde formacion/experiencia porque el CV no traia lista explicita. Determina la severidad del chequeo de grounding sobre `skills` (ver grounding.py: explicit se bloquea si no matchea la fuente, derived solo advierte)."
+        },
         "warnings": {
           "type": "array",
           "items": {"type": "string"},

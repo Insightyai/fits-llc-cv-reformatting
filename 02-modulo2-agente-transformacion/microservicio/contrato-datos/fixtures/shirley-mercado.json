@@ -59,6 +59,7 @@
     "source_language": "en",
     "translated": false,
     "prompt_version": "fixture-manual-v0",
+    "skills_source": "explicit",
     "warnings": [
       "TOWN_NOT_DECLARED: el CV no declara pueblo/ciudad de residencia (solo ciudades de los empleos) -- no inventar"
     ]

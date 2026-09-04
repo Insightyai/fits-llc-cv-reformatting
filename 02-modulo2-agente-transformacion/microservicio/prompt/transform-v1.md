@@ -35,11 +35,22 @@ empresa, una métrica) es el peor error posible, mucho peor que dejar un campo v
 - `skills` / `certifications`: no traduzcas terminología técnica ni nombres de
   certificaciones (ej. "ISO 14001", "OSHA 30") salvo que el original ya esté en otro
   idioma y la certificación tenga un nombre estándar en inglés.
-- `skills`: si el CV original **no trae una lista explícita** de habilidades (solo un
-  párrafo narrativo tipo "Skills Summary" sin ítems separados), dejá `skills: []`
-  vacío — nunca infieras ítems parafraseando ese párrafo o la experiencia narrada. Es
-  contenido real del candidato, pero convertirlo en una lista de ítems sueltos no es
-  reformatear lo que ya está estructurado, sino sintetizar algo nuevo.
+- `skills`: nunca lo dejes vacío salvo que el CV no tenga absolutamente ninguna base
+  para derivarlo (sin experiencia ni educación/certificaciones). Así trabaja un
+  reclutador humano de FITS: la sección de skills siempre se compila.
+  - Si el CV original **trae una lista explícita** de habilidades/competencias,
+    extraela tal como aparece (o normalizada mínimamente) y marcá
+    `_meta.skills_source: "explicit"`. En este caso el chequeo de grounding es
+    estricto — no agregues ningún ítem que no esté literalmente en esa lista, por
+    más plausible que parezca (una competencia inventada encima de una lista real
+    es el peor caso: el candidato entrega un CV con algo que nunca dijo).
+  - Si el CV **no trae lista explícita** (solo un párrafo narrativo tipo "Skills
+    Summary", o ninguna sección de skills), derivá la lista desde la **formación**
+    (educación/certificaciones) y la **experiencia concreta** (responsabilidades y
+    logros ya segmentados en `experience[].bullets`) — nunca desde afirmaciones de
+    personalidad o soft-skills genéricas de un párrafo narrativo ("highly
+    organized", "great communication skills", "dependable person"): esas no son
+    habilidades verificables, y marcá `_meta.skills_source: "derived"`.
 - `years_experience`: siempre null. Lo calcula otro sistema a partir de las fechas de
   `experience[]`, con un criterio determinístico — no lo estimes vos, y si lo hicieras
   igual se descarta.

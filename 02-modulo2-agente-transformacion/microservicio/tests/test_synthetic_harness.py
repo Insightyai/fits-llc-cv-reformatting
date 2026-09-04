@@ -129,15 +129,25 @@ def test_ingles_summary_pobre(api_key):
 
 def test_ingles_skills_narrativo_sin_lista(api_key):
     # Caso real: Patrick Santiago Cintron (27 ago 2026) -- un CV cuyo "SKILLS SUMMARY"
-    # es un parrafo narrativo, sin lista de items. Antes de este fix el agente inferia
-    # una lista parafraseando el parrafo (ej. "Teamwork", "Computer Proficiency",
+    # es un parrafo narrativo, sin lista de items. El agente infiere una lista
+    # parafraseando el parrafo (ej. "Teamwork", "Computer Proficiency",
     # "Adaptability"), y como esos tokens nunca aparecen literales en la fuente,
-    # GROUNDING_TOKEN_NOT_FOUND bloqueaba el CV entero como failed. Riesgo ya
-    # anticipado en la Fase 5 (30 jul, ver Decisiones.md) -- este es el primer caso
-    # real que lo confirma. Fix: cv-schema.json + el prompt ahora instruyen dejar
-    # skills:[] vacio en vez de inferir.
+    # GROUNDING_TOKEN_NOT_FOUND bloqueaba el CV entero como failed -- riesgo
+    # anticipado en la Fase 5 (30 jul, ver Decisiones.md) y confirmado con este
+    # caso real el 27 ago. Fix original (27 ago): dejar skills:[] vacio.
+    # Reversion pedida por FITS/Paola (4 sep 2026): la seccion de skills debe
+    # compilarse siempre, derivandola de formacion/experiencia (asi trabajaba el
+    # reclutador humano) -- nunca de las afirmaciones de personalidad del parrafo
+    # narrativo. skills_source="derived" baja el chequeo de grounding a warning
+    # (nunca bloquea), ver grounding.py.
     cv, state, elapsed = _run("05-ingles-skills-narrativo-sin-lista.txt", api_key)
 
     assert elapsed < SLA_BUDGET_SECONDS
-    assert state in ("ok", "review")  # nunca "failed" por skills inferidos
-    assert cv["skills"] == []
+    assert state in ("ok", "review")  # nunca "failed" por skills derivados
+    assert cv["skills"] != []
+    assert cv["_meta"]["skills_source"] == "derived"
+    # no debe copiar las afirmaciones de personalidad del parrafo narrativo tal cual
+    narrative_claims = {"organized", "dependable", "communication skills"}
+    assert not any(
+        claim in skill.lower() for skill in cv["skills"] for claim in narrative_claims
+    )

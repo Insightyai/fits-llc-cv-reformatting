@@ -107,6 +107,36 @@ def test_skill_glued_to_comma_in_source_is_not_false_positive(clean_cv, source_t
     assert report.errors == []
 
 
+def test_invented_skill_in_explicit_list_is_error(clean_cv, source_text):
+    # candidato real de FITS (Ruth Sotomayor Clavell, 14 ago 2026): su CV trae lista
+    # explicita de skills/competencias (CORE COMPETENCIES + TECHNICAL SKILLS) y el
+    # agente igual agrego una inventada ("Competitive drive") que no aparece en
+    # ningun lado del documento real. skills_source="explicit" debe seguir
+    # bloqueando esto siempre, incluso despues del pedido de FITS de nunca dejar
+    # skills[] vacio (ver test_derived_skill_not_in_source_is_warning_not_error).
+    cv = copy.deepcopy(clean_cv)
+    cv["_meta"]["skills_source"] = "explicit"
+    cv["skills"] = cv["skills"] + ["Competitive drive"]
+    report = grounding.evaluate(cv, source_text)
+    assert any(
+        e.startswith("GROUNDING_TOKEN_NOT_FOUND") and "Competitive drive" in e
+        for e in report.errors
+    )
+
+
+def test_derived_skill_not_in_source_is_warning_not_error(clean_cv, source_text):
+    # pedido real de FITS/Paola (4 sep 2026): cuando el CV no trae lista explicita,
+    # el agente deriva skills de formacion/experiencia (asi trabajaba el reclutador
+    # humano) -- nunca debe bloquear el CV entero, solo advertir, porque una
+    # derivacion legitima por definicion parafrasea y no matchea token a token.
+    cv = copy.deepcopy(clean_cv)
+    cv["_meta"]["skills_source"] = "derived"
+    cv["skills"] = ["Forklift Operation"]
+    report = grounding.evaluate(cv, source_text)
+    assert report.errors == []
+    assert any(w.startswith("SKILLS_DERIVED_NOT_VERIFIED") for w in report.warnings)
+
+
 def test_metric_split_by_phantom_kerning_space_is_not_false_positive(clean_cv, source_text):
     # candidato real de FITS (etapa BD Format, 14 ago 2026): pypdf extrajo "ISO 14
     # 001" con un espacio fantasma en medio del numero (mismo tipo de artefacto de
