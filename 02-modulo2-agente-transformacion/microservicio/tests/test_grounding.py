@@ -121,6 +121,31 @@ def test_metric_split_by_phantom_kerning_space_is_not_false_positive(clean_cv, s
     assert not any("14001" in e for e in report.errors)
 
 
+def test_roman_numeral_range_with_dash_is_not_flagged(clean_cv, source_text):
+    # candidato real de FITS (Jayendra Patel, 4 sep 2026): "...all clinical phases
+    # (I-IV)." -- rango de fases con guion, no una lista con "&"/","/"/" como los
+    # casos ya cubiertos. El "I" queda pegado a "(" (rompe la deteccion de "phase"
+    # como palabra anterior) y lo que sigue es un guion, no uno de los conectores
+    # que ya reconocia _ROMAN_NUMERAL_SEQUENCE_RE.
+    cv = copy.deepcopy(clean_cv)
+    cv["experience"][0]["bullets"][0] = (
+        "Provided CQV oversight across all clinical phases (I-IV)."
+    )
+    report = grounding.evaluate(cv, source_text)
+    assert report.errors == []
+
+
+def test_roman_numeral_range_with_en_dash_is_not_flagged(clean_cv, source_text):
+    # mismo caso pero con en-dash (U+2013), el caracter real que trajo el CV de
+    # Jayendra Patel tras la extraccion del PDF.
+    cv = copy.deepcopy(clean_cv)
+    cv["experience"][0]["bullets"][0] = (
+        "Provided CQV oversight across all clinical phases (I–IV)."
+    )
+    report = grounding.evaluate(cv, source_text)
+    assert report.errors == []
+
+
 def test_genuine_i_statement_before_laboratory_is_still_flagged(clean_cv, source_text):
     # la excepcion de secuencia romana no debe volverse una excusa general para "laboratory"
     cv = copy.deepcopy(clean_cv)

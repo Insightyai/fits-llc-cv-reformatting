@@ -19,7 +19,11 @@ _YEAR_RE = re.compile(r"\b(?:19|20)\d{2}\b")
 _METRIC_RE = re.compile(r"\$?\d[\d,]*(?:\.\d+)?%?")
 
 _I_EXCEPTIONS_BEFORE = {"phase", "level", "class", "type", "operator", "part"}
-_ROMAN_NUMERAL_SEQUENCE_RE = re.compile(r"^\s*[&,/]\s*I{2,3}\b")
+# Conectores validos entre una "I" y el numeral romano que la sigue en una lista o
+# rango (ej. "Phase I & II", "Type I, III", "clinical phases (I-IV)"). Incluye el
+# guion ASCII y los guiones unicode de _DASH_RE (el en-dash es el que trae el texto
+# extraido de PDF real, ej. candidato Jayendra Patel, 4 sep 2026) ademas de "&,/".
+_ROMAN_NUMERAL_SEQUENCE_RE = re.compile(r"^\s*[&,/\-‐-―−]\s*(?:I{1,3}|IV|V)\b")
 
 # Palabras genericas de vocabulario profesional que un summary reescrito (regla 4 del
 # PRD) puede usar sin que esten literalmente en la fuente -- reduce ruido del check
