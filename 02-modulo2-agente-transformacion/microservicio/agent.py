@@ -15,7 +15,7 @@ PROMPT_PATH = BASE_DIR / "prompt" / "transform-v1.md"
 CV_SCHEMA_PATH = BASE_DIR / "contrato-datos" / "cv-schema.json"
 
 MODEL = "claude-sonnet-5"
-MAX_TOKENS = 16000
+MAX_TOKENS = 20000
 
 
 Usage = namedtuple("Usage", ["input_tokens", "output_tokens"])

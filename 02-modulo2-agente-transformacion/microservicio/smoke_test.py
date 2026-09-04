@@ -56,6 +56,9 @@ def check(template_id, fixture_name, cv):
     assert "{{" not in full_text and "{%" not in full_text, "quedo un tag sin resolver"
     assert "None" not in full_text, "un campo null se imprimio como 'None' literal"
     assert cv["full_name"].lower() in full_text.lower(), "full_name no aparece en el render"
+    # los 3 formatos aplican |upper al nombre en el header (New Format y BD Format desde
+    # el 12 ago 2026; Non Template le faltaba, encontrado con Ibrahim Rivas Andino, 4 sep 2026)
+    assert cv["full_name"].upper() in full_text, "full_name debe aparecer en mayusculas en el header"
     assert "++" not in full_text, "years_experience duplico el '+' (bug '8++ YRS. OF EXP.')"
     assert "+ YRS. OF EXP." not in full_text or cv.get("years_experience"), (
         "quedo un '+ YRS. OF EXP.' huerfano con years_experience null"

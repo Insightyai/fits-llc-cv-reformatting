@@ -216,6 +216,16 @@
 
 **Verificación:** lógica nueva probada en Python contra la matriz completa de 7 días × horas límite (6am/7am/15h/16h/19h/20h) antes de aplicar — cubre exactamente L-V 7am-7:59pm, sábado 7am-3:59pm, domingo siempre excluido. Aplicado vía `PUT` con snapshot antes/después en ambos workflows: solo el nodo esperado cambió en cada uno (`¿Horario Laboral?` en el Processor, el Schedule Trigger en el Flusher), `active: true` intacto, mismo número de nodos. Detalle completo en `seguimiento/bitacora.md`, 27 ago 2026.
 
+### 4 Sep 2026 — MAX_TOKENS del agente subido de 16000 a 20000 (feedback de FITS, caso Carmen Lopez)
+
+**Contexto:** al corregir un bug real de extracción (`extract.py` no leía tablas de Word, ver `seguimiento/bitacora.md`), el CV completo de una candidata con 10 roles reales empezó a llegarle a Claude por primera vez — y la transformación falló con `OUTPUT_TRUNCATED`: `MAX_TOKENS = 16000` no alcanzaba para el JSON completo de un historial tan largo.
+
+**Decisión:** subir `MAX_TOKENS` a 20000 en vez de al doble (32000) o a un valor intermedio (24000) — ambos probados y rechazados porque el SDK de Anthropic exige streaming a partir de ~21333 tokens (estima que la respuesta puede tardar más de 10 minutos sin streaming y la rechaza antes de llamar a la API). 20000 es el mayor valor seguro sin migrar `_call_claude` a modo streaming.
+
+**Verificación:** reprocesado el CV real de Carmen con el nuevo límite — 40.1s (dentro del SLA de <60s por transformación), JSON completo con los 13 roles reales y 21 skills, sin truncar.
+
+**Pendiente:** si en el set real de 15-20 CVs de Fase 7 aparece un candidato cuyo historial sí necesite más de ~20000 tokens de salida, la única opción sin volver a chocar con este techo es migrar `_call_claude` a streaming (`client.messages.stream(...)`) — no evaluado todavía, no era necesario para este caso.
+
 ---
 
 ## Decisiones Pendientes

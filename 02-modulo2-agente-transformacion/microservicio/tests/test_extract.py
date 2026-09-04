@@ -66,6 +66,68 @@ def test_docx_name_in_page_header_included():
     assert "Jane Doe" in result.text
 
 
+IBRAHIM_PDF_PATH = CV_PDF_PATH.parent / "Resume- Ibrahim Rivas Andino.pdf"
+
+
+def test_pdf_floating_dates_reattached_to_role():
+    # patron real de candidato FITS (Ibrahim Rivas Andino, 4 sep 2026): el template usa
+    # un text-box flotante a la derecha para la fecha de cada rol, separado del bloque de
+    # titulo/empresa -- pypdf extrae en el orden del stream del PDF, no en orden visual,
+    # asi que las 4 fechas de este CV salian todas agrupadas al principio del texto,
+    # desconectadas de a que rol pertenece cada una (el New Format generado mostraba
+    # fechas desplazadas/mal atribuidas). El fix reubica cada fecha justo despues del
+    # titulo del rol con el que comparte fila (misma coordenada y) -- el tab que inserta
+    # el fix se colapsa a un espacio en _sanitize(), igual que cualquier otro tab/espacio
+    # del texto extraido, asi que se verifica con un espacio simple.
+    data = IBRAHIM_PDF_PATH.read_bytes()
+    result = extract_text("Resume- Ibrahim Rivas Andino.pdf", data)
+
+    assert (
+        "Quality Assurance & System Validation Specialist (QA Approval Authority)"
+        " March 2026 – Present" in result.text
+    )
+    assert "Quality Control & Quality Assurance Auditor January 2025 – March 2026" in result.text
+    assert "Associate Quality Control 2022 – 2025" in result.text
+    assert "Manufacturing Associate 2018 – 2021" in result.text
+    # las fechas ya no deben quedar sueltas y agrupadas al principio del texto, antes del
+    # nombre del candidato (sintoma original del bug)
+    assert result.text.index("IBRAHIM") < result.text.index("March 2026 – Present")
+
+
+def test_pdf_real_shirley_mercado_unaffected_by_date_reattach_fix():
+    # regresion: Shirley (y Yajaira/Luis, cubiertos solo manualmente durante el
+    # diagnostico) tambien tienen la fecha de cada rol como fragmento de texto aparte,
+    # pero el orden del stream de esos PDFs ya las deja pegadas a su fila -- el fix debe
+    # ser un no-op para estos casos, nunca debe tocar un texto que ya estaba bien.
+    data = CV_PDF_PATH.read_bytes()
+    result = extract_text("Resume- Shirley Mercado.pdf", data)
+    assert "Caribbean Refrescos, Inc |Cidra, PR" in result.text
+    assert "May 2024" in result.text
+    assert "Baxter International Inc. | Aibonito, PR" in result.text
+    assert "April 2022" in result.text
+
+
+def test_docx_table_content_included():
+    # patron real de candidata FITS (Carmen Lopez, 4 sep 2026): skills y los 10 roles de
+    # experiencia estan en tablas de Word, no en parrafos sueltos -- python-docx doc.paragraphs
+    # no las lee, asi que el LLM solo vio 1 rol de 5 y ningun skill, generando un resume
+    # incompleto (Convert Resume - New Format) sin que grounding.py lo bloqueara (no hay
+    # invencion, solo ausencia de contenido real).
+    doc = docx.Document()
+    doc.add_paragraph("PROFESSIONAL SUMMARY")
+    doc.add_paragraph("Engineer with " + " ".join(["experience"] * 60))
+    table = doc.add_table(rows=1, cols=2)
+    table.rows[0].cells[0].text = "2023 to present"
+    table.rows[0].cells[1].text = "QC LABORATORY SCIENTIST\nAbbVie Biotechnology Ltd."
+    buf = io.BytesIO()
+    doc.save(buf)
+
+    result = extract_text("cv.docx", buf.getvalue())
+
+    assert "AbbVie Biotechnology Ltd." in result.text
+    assert "2023 to present" in result.text
+
+
 def test_plain_text_fallback():
     # cubre el fallback de JazzHR (`resumeMeta`) que devuelve texto plano, no un archivo
     text = "Jane Doe\nSoftware Engineer with " + " ".join(["experience"] * 60)
