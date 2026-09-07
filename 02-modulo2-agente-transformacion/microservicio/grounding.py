@@ -15,7 +15,7 @@ LEGAL_SUFFIXES = {"inc", "llc", "corp", "corporation", "co", "ltd", "sa", "plc",
 STOPWORDS = {"the", "and", "of", "de", "la", "el", "los", "las"}
 
 _PHONE_RE = re.compile(r"\b\d{3}[-.\s]\d{3}[-.\s]\d{4}\b")
-_YEAR_RE = re.compile(r"\b(?:19|20)\d{2}\b")
+_YEAR_RE = re.compile(r"(?<!\d)(?:19|20)\d{2}(?!\d)")
 _METRIC_RE = re.compile(r"\$?\d[\d,]*(?:\.\d+)?%?")
 
 _I_EXCEPTIONS_BEFORE = {"phase", "level", "class", "type", "operator", "part"}

@@ -59,6 +59,19 @@ def test_changed_year_is_error(clean_cv, source_text):
     assert any("GROUNDING_YEAR_NOT_FOUND" in e and "2018" in e for e in report.errors)
 
 
+def test_year_glued_to_month_in_source_is_not_false_positive(clean_cv, source_text):
+    # candidata real de FITS (Daphne Rigual, 4 sep 2026): pypdf extrajo las fechas
+    # de su historial sin espacio entre mes y anio ("May2024", "Dec2021", etc.) --
+    # _YEAR_RE usaba \b (word boundary), que no encuentra limite entre una letra y
+    # un digito pegados, asi que source_years quedaba vacio para esos anios y CADA
+    # periodo de su carrera se marcaba como no verificable, no solo uno.
+    cv = copy.deepcopy(clean_cv)
+    cv["experience"][0]["period"] = "Dec 2021 - May 2024"
+    glued_source = source_text + " Quality Systems Manager Dec2021 - May2024"
+    report = grounding.evaluate(cv, glued_source)
+    assert not any("GROUNDING_YEAR_NOT_FOUND" in e and "2021" in e for e in report.errors)
+
+
 def test_null_period_is_warning_not_error(clean_cv, source_text):
     """period=None es valido cuando la fuente no trae fechas para esa experiencia
     (ej. Edward Cruz Vega, canon BD) -- degrada a EMPTY_PERIOD (warning), nunca a
