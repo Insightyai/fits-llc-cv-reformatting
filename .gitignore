@@ -5,3 +5,6 @@ __pycache__/
 *.pyc
 .pytest_cache/
 02-modulo2-agente-transformacion/cvs-canon/
+seguimiento/Casos Ajuste/
+seguimiento/*.xlsx
+seguimiento/*.pdf
