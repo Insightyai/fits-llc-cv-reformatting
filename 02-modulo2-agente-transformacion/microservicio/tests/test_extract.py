@@ -232,3 +232,22 @@ def test_pdf_pervasive_letter_spacing_from_canva():
     assert "Team Leadership" in result.text
     assert "javierboricua91@gmail.com" in result.text
     assert "787-909-4443" in result.text
+
+
+def test_pdf_pervasive_letter_spacing_years_not_glued_to_next_word():
+    # mismo PDF de Javier Rivera-Delgado: el fix de espaciado pervasivo de arriba no alcanzaba
+    # para 3 anios reales (2020, 2016, 2009), por 2 bugs distintos en _fix_pervasive_letter_spacing:
+    # (1) un espacio simple sobrante al inicio de linea (indentacion real del PDF tras el \n)
+    # generaba un token vacio ('') al hacer group.split(" "), rompiendo el chequeo "todos length 1";
+    # (2) cuando el ultimo digito del anio queda pegado sin ningun espacio al primer caracter de
+    # la siguiente palabra ("2 0 2 0M a i n t e n a n c e"), el token glue "0M" (largo 2) tambien
+    # rompia el mismo chequeo para todo el grupo. Sin este fix, grounding.py bloqueaba
+    # GROUNDING_YEAR_NOT_FOUND para 2020 (aparece en 2 periodos reales del CV) aunque el anio
+    # si esta en la fuente, solo destrozado letra por letra.
+    data = JAVIER_PDF_PATH.read_bytes()
+    result = extract_text("Resume- Javier Rivera Delgado.pdf", data)
+
+    assert "2020" in result.text
+    assert "2016" in result.text
+    assert "2009" in result.text
+    assert "2020 Maintenance" in result.text

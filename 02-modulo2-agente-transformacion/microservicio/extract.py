@@ -35,6 +35,26 @@ _LETTER_SPACING_RE = re.compile(r"^(?:[A-Z]{1,4}\s+){2,}[A-Z]{1,4}$")
 # no se tocan.
 _WORD_GROUP_SPLIT_RE = re.compile(r" {2,}")
 
+# Empiricamente derivado del mismo PDF de Javier Rivera-Delgado (8 sep 2026): 2 anios reales
+# (2020, 2016, 2009) seguian rotos incluso con el fix de arriba, por 2 variantes del mismo
+# problema que el chequeo "todos los tokens de largo 1" no cubria:
+# (1) un espacio simple sobrante al inicio de linea (indentacion real del PDF justo tras el
+# salto de linea, ej. "\n 2 0 2 0  -  2 0 2 4") genera un token vacio ('') al hacer
+# group.split(" ") -- se resuelve quitando espacios sobrantes en los bordes antes de tokenizar.
+# (2) cuando el ultimo digito del anio queda pegado sin ningun espacio al primer caracter de la
+# siguiente palabra letra-espaciada (ej. "2 0 2 0M a i n t e n a n c e", sin espacio entre "0" y
+# "M"), el token resultante ("0M") tiene largo 2 y rompe el chequeo para el grupo entero -- se
+# resuelve partiendo el grupo en ese punto exacto (digito seguido de mayuscula, sin espacio)
+# antes de tokenizar cada mitad por separado, preservando el espacio real que debia existir ahi.
+_DIGIT_LETTER_GLUE_RE = re.compile(r"(?<=\d)(?=[A-Z])")
+
+
+def _collapse_letter_spaced_group(group: str) -> str:
+    tokens = group.strip(" ").split(" ")
+    if len(tokens) >= 2 and all(len(t) == 1 for t in tokens):
+        return "".join(tokens)
+    return group
+
 
 def _fix_pervasive_letter_spacing(text: str) -> str:
     fixed_lines = []
@@ -42,11 +62,8 @@ def _fix_pervasive_letter_spacing(text: str) -> str:
         groups = _WORD_GROUP_SPLIT_RE.split(line)
         collapsed = []
         for group in groups:
-            tokens = group.split(" ")
-            if len(tokens) >= 2 and all(len(t) == 1 for t in tokens):
-                collapsed.append("".join(tokens))
-            else:
-                collapsed.append(group)
+            subgroups = _DIGIT_LETTER_GLUE_RE.split(group)
+            collapsed.append(" ".join(_collapse_letter_spaced_group(s) for s in subgroups))
         fixed_lines.append(" ".join(collapsed))
     return "\n".join(fixed_lines)
 
