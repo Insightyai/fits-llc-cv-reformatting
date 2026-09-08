@@ -204,6 +204,14 @@
 
 **Impacto:** `Convert Resume Poller` y `AI Screening Poller` ya no deberían volver a solaparse en memoria — verificado que el cambio no tocó `AI Screening Poller` de ninguna forma. No resuelve los ~3 crashes que fueron aislados (memoria propia de `Convert Resume Poller` por ciclo, no por solapamiento) — quedan pendientes en `seguimiento/plan-pendientes-oom-poller.md` junto con la migración a Railway y la conversación pendiente con FITS sobre el webhook pago.
 
+### 26 Ago 2026 — Capacitación virtual al equipo de FITS (Paola)
+
+**Contexto:** capacitación virtual del sistema al equipo operativo de FITS, cumpliendo el compromiso de la cláusula Décima del contrato ("Capacitación virtual al equipo técnico/operativo de FITS"). Realizada por Santiago, con Paola Guirado como asistente por parte de FITS.
+
+**Contenido cubierto:** el flujo completo de punta a punta — desde que el reclutador mueve un candidato a la etapa `Convert Resume - [Formato]` en JazzHR, hasta la recepción del correo de notificación, revisión del `.docx` generado y ubicación del archivo en SharePoint.
+
+**Nota registrada tardíamente (8 sep 2026):** esta sesión no se documentó en su momento — se registra ahora porque el 8 sep, al redactar `Manual-Operacion-FITS.md`, se definió esta fecha como la **Fecha de Go-Live Final** a efectos de la cláusula Noveno (Garantía y Soporte) del contrato, con la garantía de 30 días corriendo hasta el 25 sep 2026. Sin acta ni grabación de la sesión — la fecha y el contenido quedan respaldados únicamente por esta entrada, a partir de confirmación directa de Santiago.
+
 ### 27 Ago 2026 — Ampliación del horario de notificaciones al reclutador (feedback de FITS)
 
 **Contexto:** FITS pidió recibir los CVs procesados sin importar la hora, en vez de solo Lun-Vie 8am-5pm hora PR (gate activado el 14 ago 2026 junto con `EMAIL_ENABLED`). Santiago propuso, en vez de eliminar el gate por completo, ampliarlo: Lunes a Viernes 7am-8pm, y agregar el sábado de 7am a 4pm — domingo sigue excluido.
