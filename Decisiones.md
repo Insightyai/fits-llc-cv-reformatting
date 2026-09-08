@@ -236,11 +236,11 @@
 - [x] Confirmar permisos otorgados — resuelto: lectura y escritura verificadas vía Graph API
 - [x] Cargar y probar credencial de SharePoint en N8N — resuelto: `SharePoint - CV Reformatting (Graph API)` funcionando
 - [x] Reutilizar la credencial Anthropic de Fase 1 (`P3oMjAzU63IfOAff` en `../../fits-llc/`) o provisionar una nueva — resuelto: se reutiliza la de Fase 1
-- [ ] Set de 15–20 CVs reales para las pruebas de aceptación del Módulo 2 (más allá del CV de prueba ya recibido, ver `02-modulo2-agente-transformacion/cvs-prueba/`)
+- [x] Set de 15–20 CVs reales para las pruebas de aceptación del Módulo 2 (más allá del CV de prueba ya recibido, ver `02-modulo2-agente-transformacion/cvs-prueba/`) — resuelto: ya se acumuló testing suficiente con CVs reales vía los casos de producción (Shirley, Baxter, Steven, Jayendra, Daphne, Carmen, Ibrahim, Noherbin, Javier, etc.), confirmado con FITS (8 sep 2026)
 - [x] Paso de revisión humana antes del envío — resuelto: modo piloto manual (`EMAIL_ENABLED` en el Processor), ver entrada del 11 ago 2026. No es un gate por-candidato permanente, solo para el arranque.
-- [ ] Criterio real de cálculo de `years_experience` — suma de períodos vs. lo declarado por el candidato (ver `agente/CONTRATO-AGENTE.md`, criterio v1 en uso mientras tanto)
-- [ ] Estilo de tercera persona: impersonal verbo-primero (v1 en uso) vs. con pronombre "He/She"
-- [ ] Si `REVIEW_BLOCKS_DELIVERY` (agente de transformación) puede pasar a `false` una vez medida la tasa de falsos positivos/negativos con CVs reales
+- [x] Criterio real de cálculo de `years_experience` — resuelto (8 sep 2026): suma de todos los períodos de `experience[]`, calculada por Python, nunca lo declarado por el candidato — coincide con el criterio v1 ya implementado, sin cambio de código (ver `agente/CONTRATO-AGENTE.md`)
+- [x] Estilo de tercera persona — resuelto (8 sep 2026): impersonal verbo-primero, sin pronombre "He/She" (evita el riesgo de inferir mal el género del candidato; ya cumple el requisito de FITS de tercera persona) — sin cambio de código (ver `agente/CONTRATO-AGENTE.md`)
+- [x] Si `REVIEW_BLOCKS_DELIVERY` puede pasar a `false` — resuelto (8 sep 2026): `false` definitivo, reflejando el comportamiento real ya en producción (nunca se cableó el bloqueo en N8N; `review` se entrega igual que `ok`, `failed` sigue cortando el pipeline) — ver `agente/CONTRATO-AGENTE.md`
 - [ ] Confirmar con Paola el tipo de guion exacto de Non Template (se usó `"-"` simple por default el 11 ago, sin confirmar — ver `templates/TAG-CONTRACT.md`)
 - [ ] Confirmar con Paola si "Non Template" debe tener secciones variables por candidato (reflejando el CV original) en vez del template fijo actual — hallazgo del 11 ago, no resuelto
 - [ ] Confirmar con Paola si `CORE COMPETENCIES` / `TECHNICAL & PROFESSIONAL SKILLS` con subtítulos / `ADDITIONAL EXPERIENCE` (presentes en el canon de Kenneth/Yanina pero no implementados el 11 ago) deberían soportarse como secciones opcionales de New Format

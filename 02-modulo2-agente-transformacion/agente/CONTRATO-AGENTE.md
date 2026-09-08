@@ -25,7 +25,9 @@ El agente corre como código Python nuevo dentro del mismo servicio que ya rende
 
 ## Flag `REVIEW_BLOCKS_DELIVERY`
 
-**Default: `true`** (corregido respecto al borrador inicial del plan, por hallazgo de la auditoría de Opus: el propio fixture de referencia `shirley-mercado.json` contenía una inferencia no verificada del LLM — "food **and beverage** manufacturing" no estaba en el CV original — que el diseño de grounding original no atrapaba como error; corregido el 30 jul 2026 tanto en el fixture como con el check de grounding suave de `summary`, ver Fase 3 más abajo. Hasta medir la tasa real de falsos positivos/negativos con los 15–20 CVs de FITS, es más barato revisar de más que entregar un CV con una certificación o dato inventado a un cliente farmacéutico). Con `true`, un CV en estado `review` no se renderiza automáticamente — queda para revisión humana antes de continuar el pipeline. Se relaja a `false` únicamente cuando FITS confirme (a) que la revisión humana no es necesaria antes del envío grupal (pregunta abierta del PRD §7) y (b) que la tasa de warnings sobre el set real es manejable.
+**`false` — confirmado como definitivo (8 sep 2026).** El default original del plan (`true`, corregido el 30 jul 2026 tras el hallazgo de la auditoría de Opus sobre el fixture `shirley-mercado.json` — ver historial abajo) nunca se cableó como gate real en el `Convert Resume Processor` de N8N: en producción, un CV en estado `review` siempre se renderizó y entregó igual que uno `ok` — solo `failed` corta el pipeline (422, sin `cv` en la respuesta). Confirmado con múltiples candidatos reales entregados en `state=review` sin incidentes (Paola Maldonado Pereira, Miguel Rivera Palou, Daphne Rigual, entre otros — ver `seguimiento/bitacora.md`), y respaldado por el volumen ya acumulado de CVs reales de FITS procesados en producción (51 tests en el repo, más los casos reales caso-a-caso documentados en `bitacora.md`) — se documenta `false` para que el contrato refleje el comportamiento real medido, no un gate que nunca existió. Los datos realmente riesgosos (empresa/años/métricas inventados) siguen bloqueados como error duro (`state=failed`) por `grounding.py`, sin cambios.
+
+**Historial:** el default `true` inicial (30 jul 2026) respondió a que el propio fixture de referencia `shirley-mercado.json` contenía una inferencia no verificada del LLM — "food **and beverage** manufacturing" no estaba en el CV original — que el diseño de grounding original no atrapaba como error; corregido ese mismo día tanto en el fixture como con el check de grounding suave de `summary` (ver Fase 3 más abajo).
 
 ## Catálogo cerrado de códigos de warning
 
@@ -104,11 +106,11 @@ Checks determinísticos sobre el texto fuente ya extraído (nunca sobre datos ex
 
 Suma de los períodos de `experience[]` sin solapamiento, a partir de fechas explícitas. "Present"/"Current"/"Actualidad"/"a la fecha" se resuelve contra una fecha de ejecución **inyectable** (parámetro `now` en toda la cadena de `dates.py`; nunca `datetime.now()` embebido — necesario porque el propio fixture de Shirley Mercado solo da `"4"` entre abril 2026 y marzo 2027; fuera de esa ventana el resultado cambia y un test sin `now` congelado se rompería solo con el paso del calendario). Redondeo hacia abajo. **Formato: solo el número en string (ej. `"4"`), sin el sufijo `+`** — el `.docx` ya agrega el `"+ YRS. OF EXP."` de forma literal (ver `templates/TAG-CONTRACT.md`; bug de doble `+` corregido el 30 jul 2026, ver `Decisiones.md`). Si algún período no parsea o hay ambigüedad irresoluble → `null` + `YEARS_EXPERIENCE_UNKNOWN`, nunca un número inventado.
 
-**Pendiente de confirmar con FITS** (no bloqueante, criterio conservador mientras tanto): si el cálculo debe sumar todos los períodos o solo los del mismo campo/industria; si un candidato que declara su propio total en el CV original tiene prioridad sobre el cálculo.
+**Confirmado (8 sep 2026):** el criterio real es la suma de todos los períodos de `experience[]` (sin distinción de campo/industria), calculada por Python — nunca lo que el candidato declara como total en el CV original. Coincide con lo que ya implementa `dates.py`, sin cambio de código.
 
-## Estilo de tercera persona v1
+## Estilo de tercera persona (confirmado, 8 sep 2026)
 
-Impersonal, sin pronombres, verbo primero — "Managed a team of 5", no "He/She managed a team of 5". Es el estilo que ya usa `fixtures/shirley-mercado.json` (ground truth validado). La alternativa con pronombre queda registrada como pendiente de confirmar con FITS junto con el resto de decisiones de estilo (ver `reglas-por-formato.md` §Validación de calidad).
+Impersonal, sin pronombres, verbo primero — "Managed a team of 5", no "He/She managed a team of 5". Es el estilo que ya usa `fixtures/shirley-mercado.json` (ground truth validado) y queda como definitivo: ya cumple el requisito de FITS de tercera persona (sin "I", primera persona) sin el riesgo de inferir mal el género del candidato con "He/She" — dato no siempre explícito en el CV fuente. Sin cambio de código.
 
 ## Qué NO cubre este documento
 
