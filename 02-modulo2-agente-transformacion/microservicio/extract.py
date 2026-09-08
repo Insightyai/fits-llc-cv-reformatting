@@ -22,6 +22,34 @@ MAX_CHARS = 20000
 # texto crudo.
 _LETTER_SPACING_RE = re.compile(r"^(?:[A-Z]{1,4}\s+){2,}[A-Z]{1,4}$")
 
+# Empiricamente derivado del PDF real de Javier Rivera-Delgado (8 sep 2026): PDFs generados
+# con Canva separan cada caracter con un espacio simple en TODO el cuerpo del texto, no solo
+# en los encabezados ("I n d u s t r i a l m a i n t e n a n c e p r o f e s s i o n a l").
+# La unica pista recuperable es que pypdf preserva el espacio real entre palabras como espacio
+# DOBLE (el espacio ancho del PDF) contra el espacio simple entre letras -- se pierde en cuanto
+# _sanitize() colapsa espacios repetidos, asi que este fix corre antes, sobre el texto crudo.
+# Cada grupo separado por 2+ espacios se revisa: si son 2+ tokens de 1 caracter cada uno
+# (letras, digitos o puntuacion), es una palabra partida letra por letra y se junta sin
+# espacios -- el piso es 2, no 3, porque palabras cortas reales ("as", "of", "US", "PR")
+# tambien vienen partidas asi; los demas grupos (palabras reales, ya de mas de 1 caracter)
+# no se tocan.
+_WORD_GROUP_SPLIT_RE = re.compile(r" {2,}")
+
+
+def _fix_pervasive_letter_spacing(text: str) -> str:
+    fixed_lines = []
+    for line in text.split("\n"):
+        groups = _WORD_GROUP_SPLIT_RE.split(line)
+        collapsed = []
+        for group in groups:
+            tokens = group.split(" ")
+            if len(tokens) >= 2 and all(len(t) == 1 for t in tokens):
+                collapsed.append("".join(tokens))
+            else:
+                collapsed.append(group)
+        fixed_lines.append(" ".join(collapsed))
+    return "\n".join(fixed_lines)
+
 # Empiricamente derivado del PDF real de Ibrahim Rivas Andino (4 sep 2026): templates de
 # 2 columnas ponen la fecha de cada rol en un bloque de texto flotante separado del
 # titulo/empresa. pypdf extrae en el orden del stream interno del PDF, no en orden visual,
@@ -276,6 +304,8 @@ def extract_text(filename: str, data: bytes) -> ExtractResult:
             "CORRUPT_FILE", f"no se pudo leer {filename} como {kind}: {exc}"
         ) from exc
 
+    if kind == "pdf":
+        raw = _fix_pervasive_letter_spacing(raw)
     raw = _fix_letter_spacing(raw)
     clean = _sanitize(raw)
 

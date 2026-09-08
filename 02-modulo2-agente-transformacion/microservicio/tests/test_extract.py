@@ -197,5 +197,38 @@ def test_letter_spacing_preserves_real_allcaps_lines():
     # con palabras largas no deben colapsarse, solo las lineas realmente partidas letra a letra
     text = "Jane Doe\n" + "word " * 100 + "\nBS COMPUTER SCIENCE\n"
     result = extract_text("cv.txt", text.encode("utf-8"))
-
     assert "BS COMPUTER SCIENCE" in result.text
+
+
+JAVIER_PDF_PATH = CV_PDF_PATH.parent / "Resume- Javier Rivera Delgado.pdf"
+
+
+def test_pdf_pervasive_letter_spacing_from_canva():
+    # patron real de candidato FITS (Javier Rivera-Delgado, 8 sep 2026): un PDF generado con
+    # Canva separa cada caracter con un espacio simple en TODO el cuerpo del texto, no solo en
+    # los encabezados de seccion ("I n d u s t r i a l m a i n t e n a n c e..."). A diferencia
+    # del caso de Shirley Mercado (headers en chunks de 2-4 letras), aca la unica pista
+    # recuperable es que pypdf preserva el espacio real entre palabras como espacio DOBLE
+    # (el espacio ancho del PDF) contra el espacio simple entre letras -- se pierde en cuanto
+    # _sanitize() colapsa espacios repetidos, asi que el fix tiene que reconstruir las palabras
+    # antes de eso. Sin este fix, grounding.py bloqueaba con 17 GROUNDING_TOKEN_NOT_FOUND
+    # (empresas, certificaciones y skills reales que el modelo si transcribio bien, pero que
+    # nunca aparecen como substring literal en la fuente destrozada letra por letra).
+    data = JAVIER_PDF_PATH.read_bytes()
+    result = extract_text("Resume- Javier Rivera Delgado.pdf", data)
+
+    assert "Optima" in result.text
+    assert "Kerry Ingredients" in result.text
+    assert "Polaris" in result.text
+    assert "Lakeside Foods" in result.text
+    assert "Amgen LTD" in result.text
+    assert "US Cotton LLC" in result.text
+    assert "Bristol Myers Squibb" in result.text
+    assert "McNeil" in result.text
+    assert "Huertas College" in result.text
+    assert "Industrial Welding" in result.text
+    assert "Kaizen Certification" in result.text
+    assert "Instrumentation" in result.text
+    assert "Team Leadership" in result.text
+    assert "javierboricua91@gmail.com" in result.text
+    assert "787-909-4443" in result.text
