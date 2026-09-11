@@ -164,6 +164,25 @@ def test_metric_split_by_phantom_kerning_space_is_not_false_positive(clean_cv, s
     assert not any("14001" in e for e in report.errors)
 
 
+def test_metric_with_period_as_thousands_separator_is_not_false_positive(clean_cv, source_text):
+    # candidato real de FITS (Guillermo Rosario, 10 sep 2026, job Amgen FG, Non
+    # Template): la fuente escribe el numero con punto como separador de miles
+    # ("250.000 GPD", formato PR/espanol), asi que extract_metrics() lo lee como
+    # un decimal literal ("250" + fraccion ".000") y lo guarda con el punto adentro.
+    # El agente lo transcribe correctamente en formato US ("250,000" -> "250000"
+    # tras el strip de comas) pero esa cadena nunca matchea "250.000" ni como
+    # comparacion directa ni como substring despaciado, porque el punto rompe el
+    # match -- bloqueaba como invencion un numero que si esta en la fuente.
+    cv = copy.deepcopy(clean_cv)
+    cv["experience"][0]["bullets"][0] = (
+        "Designed and implemented full renovation of the utilities WFI system, "
+        "rated at 250,000 GPD."
+    )
+    source_with_euro_number = source_text + " This system was rated at 250.000 GPD."
+    report = grounding.evaluate(cv, source_with_euro_number)
+    assert not any("250000" in e for e in report.errors)
+
+
 def test_roman_numeral_range_with_dash_is_not_flagged(clean_cv, source_text):
     # candidato real de FITS (Jayendra Patel, 4 sep 2026): "...all clinical phases
     # (I-IV)." -- rango de fases con guion, no una lista con "&"/","/"/" como los

@@ -17,6 +17,7 @@ STOPWORDS = {"the", "and", "of", "de", "la", "el", "los", "las"}
 _PHONE_RE = re.compile(r"\b\d{3}[-.\s]\d{3}[-.\s]\d{4}\b")
 _YEAR_RE = re.compile(r"(?<!\d)(?:19|20)\d{2}(?!\d)")
 _METRIC_RE = re.compile(r"\$?\d[\d,]*(?:\.\d+)?%?")
+_EURO_THOUSANDS_RE = re.compile(r"^\d{1,3}(?:\.\d{3})+$")
 
 _I_EXCEPTIONS_BEFORE = {"phase", "level", "class", "type", "operator", "part"}
 # Conectores validos entre una "I" y el numeral romano que la sigue en una lista o
@@ -91,6 +92,12 @@ def extract_metrics(text):
         if _YEAR_RE.fullmatch(bare):
             continue  # los anios se chequean aparte (_check_years)
         metrics.add(bare)
+        # formato PR/espanol: punto como separador de miles (ej. "250.000 GPD" en
+        # el CV real de Guillermo Rosario, 10 sep 2026) -- _METRIC_RE lo lee como
+        # decimal y deja el punto adentro de `bare`, asi que se agrega tambien la
+        # lectura sin puntos para que matchee contra la version US del agente.
+        if _EURO_THOUSANDS_RE.fullmatch(bare):
+            metrics.add(bare.replace(".", ""))
     return metrics
 
 
