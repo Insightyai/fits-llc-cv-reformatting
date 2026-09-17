@@ -164,6 +164,19 @@ def test_metric_split_by_phantom_kerning_space_is_not_false_positive(clean_cv, s
     assert not any("14001" in e for e in report.errors)
 
 
+def test_year_split_by_phantom_kerning_space_is_not_false_positive(clean_cv, source_text):
+    # candidato real de FITS (Cesar Rivera, etapa New Format, 17 sep 2026): pypdf
+    # extrajo "Feb 2 026" con un espacio fantasma DENTRO del propio anio (mismo tipo
+    # de artefacto de kerning que "ISO 14 001", pero partiendo un anio en vez de una
+    # metrica) -- _YEAR_RE exige 4 digitos contiguos, asi que "2026" nunca entraba a
+    # source_years aunque el anio si esta en la fuente, solo con un espacio de mas.
+    cv = copy.deepcopy(clean_cv)
+    cv["experience"][0]["period"] = "Jan 2023 - Feb 2026"
+    kerned_source = source_text + " Consultant role from Jan 2023 to Feb 2 026."
+    report = grounding.evaluate(cv, kerned_source)
+    assert not any("GROUNDING_YEAR_NOT_FOUND" in e and "2026" in e for e in report.errors)
+
+
 def test_metric_with_period_as_thousands_separator_is_not_false_positive(clean_cv, source_text):
     # candidato real de FITS (Guillermo Rosario, 10 sep 2026, job Amgen FG, Non
     # Template): la fuente escribe el numero con punto como separador de miles

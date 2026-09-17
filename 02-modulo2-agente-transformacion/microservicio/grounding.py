@@ -246,7 +246,7 @@ def evaluate(cv, source_text):
             report.warnings.append("EMPTY_PERIOD: un empleo llego sin fechas")
         elif years_checkable:
             for year in extract_years_from_value(period):
-                if year not in source_years:
+                if year not in source_years and not _metric_bounded_in_despaced(year, source_desp):
                     report.errors.append(
                         f"GROUNDING_YEAR_NOT_FOUND: {year} (periodo {period!r}) no esta en la fuente"
                     )
@@ -269,7 +269,7 @@ def evaluate(cv, source_text):
             report.warnings.append("EMPTY_PERIOD: educacion sin fechas")
         elif period and years_checkable:
             for year in extract_years_from_value(period):
-                if year not in source_years:
+                if year not in source_years and not _metric_bounded_in_despaced(year, source_desp):
                     report.errors.append(
                         f"GROUNDING_YEAR_NOT_FOUND: {year} (periodo {period!r}) no esta en la fuente"
                     )
