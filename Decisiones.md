@@ -234,6 +234,39 @@
 
 **Pendiente:** si en el set real de 15-20 CVs de Fase 7 aparece un candidato cuyo historial sí necesite más de ~20000 tokens de salida, la única opción sin volver a chocar con este techo es migrar `_call_claude` a streaming (`client.messages.stream(...)`) — no evaluado todavía, no era necesario para este caso.
 
+### 12 Sep 2026 — Detección rápida de "Convert Resume" vía feed de actividad no documentado de JazzHR, en modo sombra
+
+**Contexto:** el Poller por escaneo job+etapa (`JazzHR - Convert Resume Poller`) tiene un piso estructural de 50-70 min por barrido completo (rate limit real ~1 request cada 10-11s contra ~113 jobs abiertos), y el equipo de FITS reportó necesitar una respuesta más rápida. Ya se habían evaluado y descartado antes dos alternativas: el webhook nativo pagado de JazzHR (~$27-29/mes, descartado dos veces por costo) y migrar el polling al microservicio de Railway (viable pero diferido — no elimina el rate limit estructural, solo la contención de memoria con `AI Screening Poller`).
+
+Inspeccionando el dashboard de JazzHR con DevTools, Santiago encontró un endpoint interno no documentado (`GET /user/{userId}/action`) que alimenta el widget "Latest Activity" en tiempo real — feed de actividad a nivel de toda la cuenta, con un `id` global ascendente (sirve de cursor) y `workflowStepId` directo en cada ítem, matcheable contra el mismo diccionario `FORMAT_BY_STEP` que ya usa el Poller, sin necesitar resolver `/job`. Usa la misma cookie de sesión ya autorizada (`JazzHR Cookie`), sin costo ni credencial nueva. Detalle técnico completo en `conocimiento/jazzhr-activity-feed-endpoint.md`.
+
+**Decisión:** construir un workflow n8n nuevo y separado (`JazzHR - Convert Resume Activity Poller`, id `ioKEvVylitg7MHil`), que corre cada 5 minutos consultando este feed, en **modo sombra puro** — detecta y registra en 2 pestañas nuevas del Sheet de producción (`Activity Shadow Log`, `Activity Shadow Meta`), sin disparar el Processor todavía. El Poller viejo (`6gxbJ87rfAsbcCOO`) sigue activo, sin ningún cambio, como única fuente real de disparo mientras dure la validación.
+
+**Razón:** el feed nuevo tiene una limitación real — la ventana observada es de 500 ítems (`X-Pagination-Total-Items`), probablemente un techo de las últimas acciones de toda la cuenta, no un historial completo. Eso significa que, si el poller nuevo estuviera caído mucho tiempo, podría perder eventos de forma irrecuperable por esta vía. Por eso no se reemplaza el Poller viejo de entrada — se valida primero en paralelo, y recién si demuestra cobertura equivalente o mejor, se hace el corte y el Poller viejo pasa a un rol de reconciliación de baja frecuencia (no se elimina).
+
+**Criterios de validación antes del corte** (ventana de 5-7 días hábiles corridos, incluye un sábado por el gate de horario laboral):
+- Cobertura ≥ 99% de lo que el Poller viejo efectivamente procesó en la ventana.
+- Latencia mediana ≤ 10 min desde la detección hasta la aparición en el log real (vs. hasta 70 min hoy).
+- Cero `UNMAPPED_STEP_ID` sin explicar.
+- Cero errores de endpoint no manejados (o, si los hubo, confirmado que `Error Alert Global` avisó y que el Poller viejo cubrió con normalidad).
+- Sin falsos positivos genuinos (distintos de "el Poller viejo todavía no lo procesó").
+
+**Impacto:** ningún workflow de producción fue tocado ni modificado (`Convert Resume Poller`, `Convert Resume Processor`, `Notification Queue Flusher` — confirmado por `updatedAt` sin cambios). El workflow nuevo quedó activo y ya tuvo su primera ejecución autónoma real. Se encontró y corrigió, el mismo día, un bug real de sobre-consulta en el diseño inicial (traía siempre las 5 páginas completas del feed con un `expand` pesado, cortando la escritura al Sheet — ver `conocimiento/jazzhr-activity-feed-endpoint.md`).
+
+**Pendiente:** completar la ventana de validación; decidir si se recupera `actorUserName` (hoy vacío por el recorte de payload del fix); agregar la fila de encabezados a las 2 pestañas nuevas del Sheet (manual, bloqueado por permisos durante la construcción); plan de corte detallado (agregar `LIVE_MODE`, dedup contra el log real, conexión al webhook del Processor, y downgrade del cron del Poller viejo a modo reconciliación) queda para una sesión aparte, una vez cumplida la validación.
+
+### 23 Sep 2026 — Skills explícitas de un CV traducido se verifican contra su texto original (`_meta.skills_original`), no contra la traducción
+
+**Contexto:** un candidato real (Nesky Antonio Guzmán, `421709037`, job `11023485`, Non Template) quedó bloqueado con `GROUNDING_FAILED`: 7 de 8 skills marcadas con `GROUNDING_TOKEN_NOT_FOUND`. Su CV está completo en español y trae una sección `HABILIDADES` explícita; el agente la tradujo fielmente al inglés (regla 1 del prompt) y el chequeo estricto de `skills_source: "explicit"` comparaba esa traducción contra una fuente en español. No había ninguna invención. Era un falso positivo sistémico: se iba a repetir con cualquier CV en español que trajera su propia lista de skills, algo frecuente en Puerto Rico.
+
+**Opciones evaluadas:**
+1. Bajar el chequeo a warning cuando `explicit` + `translated`. Es el cambio más chico, pero deja pasar sin bloqueo una skill inventada en cualquier CV traducido, justo el agujero que el chequeo estricto cierra (casos reales ya atrapados: Ruth Sotomayor, Luis Moreno).
+2. **Elegida:** el agente devuelve también `_meta.skills_original[]`, con el texto de cada skill tal como aparece en el CV y en su idioma original, en el mismo orden y la misma cantidad que `skills[]`. Cuando `translated=true`, `grounding.py` verifica esos originales de forma estricta contra la fuente, en vez de la traducción.
+
+**Razón:** mantiene la protección contra invenciones en CVs traducidos (una skill agregada no tiene original en la fuente y se sigue bloqueando) y elimina el falso positivo. Si `skills_original` falta o no coincide en largo con `skills[]`, `grounding.py` vuelve al chequeo anterior sobre `skills[]` (fail-closed, nunca más permisivo).
+
+**Impacto:** `cv-schema.json` (campo nuevo requerido en `_meta`; vacío con `skills_source: "derived"`), `prompt/transform-v1.md` (cambia el hash de `prompt_version`), `grounding.py` y el fixture de Shirley Mercado. Commit `1afff21`, desplegado a Railway el 23 sep 2026. Verificado con TDD (3 tests nuevos; 101 unitarios y 7 `llm` en verde) y con el CV real contra Claude en local y en producción: el candidato se reprocesó con `resultado: OK` y se envió el correo al reclutador.
+
 ---
 
 ## Decisiones Pendientes
