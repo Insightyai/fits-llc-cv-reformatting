@@ -288,14 +288,21 @@ def evaluate(cv, source_text):
     # chequeo soft, igual que title/institution -- nunca bloquea, solo advierte,
     # porque una derivacion legitima por definicion parafrasea y no matchea token a
     # token contra la fuente.
+    # explicit + traducido: se verifica el texto original de cada skill
+    # (_meta.skills_original, mismo orden que skills[]), no la traduccion -- caso
+    # real 22 sep 2026, CV en espanol con HABILIDADES explicita bloqueado 7/7 sin
+    # ninguna invencion. Si falta o no coincide en largo, se chequea skills[] como antes.
     skills_source = cv.get("_meta", {}).get("skills_source")
-    for skill in cv.get("skills", []):
+    skills = cv.get("skills", [])
+    originals = cv.get("_meta", {}).get("skills_original") or []
+    use_originals = translated and len(originals) == len(skills)
+    for skill, original in zip(skills, originals if use_originals else skills):
         if skills_source == "derived":
             _check_literal_soft(skill, source_words, "SKILLS_DERIVED_NOT_VERIFIED", report)
         else:
             _check_source_backed(
-                skill, source_words, "GROUNDING_TOKEN_NOT_FOUND", "COMPANY_NOT_VERIFIABLE", report,
-                label=f"skill={skill!r}",
+                original, source_words, "GROUNDING_TOKEN_NOT_FOUND", "COMPANY_NOT_VERIFIABLE", report,
+                label=f"skill={skill!r} (original={original!r})" if use_originals else f"skill={skill!r}",
             )
 
     heuristic_jobs = count_heuristic_jobs(source_text)

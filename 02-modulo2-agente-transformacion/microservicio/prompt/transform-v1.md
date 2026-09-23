@@ -44,6 +44,10 @@ empresa, una métrica) es el peor error posible, mucho peor que dejar un campo v
     estricto — no agregues ningún ítem que no esté literalmente en esa lista, por
     más plausible que parezca (una competencia inventada encima de una lista real
     es el peor caso: el candidato entrega un CV con algo que nunca dijo).
+    Además, completá `_meta.skills_original` con el texto de cada skill tal como
+    aparece en el CV original, en su idioma original y sin traducir — mismo orden y
+    misma cantidad que `skills` (si el CV está en español, `skills` va traducido al
+    inglés y `skills_original` en español, copiado de la lista del CV).
   - Si el CV **no trae lista explícita** (solo un párrafo narrativo tipo "Skills
     Summary", o ninguna sección de skills), derivá la lista desde la **formación**
     (educación/certificaciones) y la **experiencia concreta** (responsabilidades y
@@ -51,6 +55,7 @@ empresa, una métrica) es el peor error posible, mucho peor que dejar un campo v
     personalidad o soft-skills genéricas de un párrafo narrativo ("highly
     organized", "great communication skills", "dependable person"): esas no son
     habilidades verificables, y marcá `_meta.skills_source: "derived"`.
+    En este caso `_meta.skills_original` va vacío (`[]`).
 - `years_experience`: siempre null. Lo calcula otro sistema a partir de las fechas de
   `experience[]`, con un criterio determinístico — no lo estimes vos, y si lo hicieras
   igual se descarta.

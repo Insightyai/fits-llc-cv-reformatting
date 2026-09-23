@@ -137,6 +137,65 @@ def test_invented_skill_in_explicit_list_is_error(clean_cv, source_text):
     )
 
 
+SPANISH_SKILLS_BLOCK = (
+    " HABILIDADES Atención al cliente y resolución de problemas "
+    "Trabajo en equipo y comunicación efectiva "
+    "Manejo de herramientas manuales y eléctricas "
+    "Organización, responsabilidad y puntualidad"
+)
+TRANSLATED_SKILLS = [
+    "Customer service and problem-solving",
+    "Teamwork and effective communication",
+    "Handling of manual and power tools",
+    "Organization, responsibility, and punctuality",
+]
+ORIGINAL_SKILLS = [
+    "Atención al cliente y resolución de problemas",
+    "Trabajo en equipo y comunicación efectiva",
+    "Manejo de herramientas manuales y eléctricas",
+    "Organización, responsabilidad y puntualidad",
+]
+
+
+def _translated_explicit_cv(clean_cv, skills, originals):
+    cv = copy.deepcopy(clean_cv)
+    cv["_meta"]["skills_source"] = "explicit"
+    cv["_meta"]["translated"] = True
+    cv["skills"] = skills
+    cv["_meta"]["skills_original"] = originals
+    return cv
+
+
+def test_translated_explicit_skills_verified_against_original(clean_cv, source_text):
+    # candidato real de FITS (22 sep 2026, Non Template): CV en espanol con seccion
+    # HABILIDADES explicita, el agente la tradujo fielmente y el chequeo estricto
+    # comparaba la traduccion al ingles contra la fuente en espanol -- 7/7 skills
+    # bloqueadas sin ninguna invencion. El original de cada skill es lo que se
+    # verifica contra la fuente.
+    cv = _translated_explicit_cv(clean_cv, TRANSLATED_SKILLS, ORIGINAL_SKILLS)
+    report = grounding.evaluate(cv, source_text + SPANISH_SKILLS_BLOCK)
+    assert report.errors == []
+
+
+def test_translated_explicit_invented_skill_still_blocks(clean_cv, source_text):
+    cv = _translated_explicit_cv(
+        clean_cv,
+        TRANSLATED_SKILLS + ["Competitive drive"],
+        ORIGINAL_SKILLS + ["Impulso competitivo"],
+    )
+    report = grounding.evaluate(cv, source_text + SPANISH_SKILLS_BLOCK)
+    assert any(
+        e.startswith("GROUNDING_TOKEN_NOT_FOUND") and "Impulso competitivo" in e
+        for e in report.errors
+    )
+
+
+def test_translated_explicit_originals_length_mismatch_falls_back_to_skills(clean_cv, source_text):
+    cv = _translated_explicit_cv(clean_cv, TRANSLATED_SKILLS, ORIGINAL_SKILLS[:2])
+    report = grounding.evaluate(cv, source_text + SPANISH_SKILLS_BLOCK)
+    assert any(e.startswith("GROUNDING_TOKEN_NOT_FOUND") for e in report.errors)
+
+
 def test_derived_skill_not_in_source_is_warning_not_error(clean_cv, source_text):
     # pedido real de FITS/Paola (4 sep 2026): cuando el CV no trae lista explicita,
     # el agente deriva skills de formacion/experiencia (asi trabajaba el reclutador

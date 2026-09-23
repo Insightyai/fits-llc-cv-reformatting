@@ -73,7 +73,7 @@
     },
     "_meta": {
       "type": "object",
-      "required": ["source_language", "translated", "prompt_version", "warnings", "skills_source"],
+      "required": ["source_language", "translated", "prompt_version", "warnings", "skills_source", "skills_original"],
       "additionalProperties": false,
       "description": "No se renderiza en el .docx. Uso interno: log de Sheets (Modulo 3) y auditoria.",
       "properties": {
@@ -84,6 +84,11 @@
           "type": "string",
           "enum": ["explicit", "derived"],
           "description": "'explicit' si `skills` viene de una lista propia del CV original; 'derived' si se infirio desde formacion/experiencia porque el CV no traia lista explicita. Determina la severidad del chequeo de grounding sobre `skills` (ver grounding.py: explicit se bloquea si no matchea la fuente, derived solo advierte)."
+        },
+        "skills_original": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Solo con skills_source='explicit': el texto de cada skill tal como aparece en el CV original, en su idioma original, sin traducir -- mismo orden y misma cantidad que `skills`. Con skills_source='derived', lista vacia. grounding.py verifica estos textos (no la traduccion) contra la fuente cuando el CV fue traducido."
         },
         "warnings": {
           "type": "array",
