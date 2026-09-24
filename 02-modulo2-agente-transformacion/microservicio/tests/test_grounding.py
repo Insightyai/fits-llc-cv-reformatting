@@ -137,6 +137,42 @@ def test_invented_skill_in_explicit_list_is_error(clean_cv, source_text):
     )
 
 
+def _explicit_cv_with_skill(clean_cv, skill):
+    cv = copy.deepcopy(clean_cv)
+    cv["_meta"]["skills_source"] = "explicit"
+    cv["skills"] = cv["skills"] + [skill]
+    return cv
+
+
+def test_explicit_skill_with_source_typo_corrected_is_not_flagged(clean_cv, source_text):
+    # candidato real de FITS (Elvis Esparra Nunez, 24 sep 2026): la lista SKILLS de
+    # la fuente dice "Responsability" y el agente la corrigio a "Responsibility".
+    cv = _explicit_cv_with_skill(clean_cv, "Responsibility")
+    report = grounding.evaluate(cv, source_text + " SKILLS Responsability Time Management")
+    assert report.errors == []
+
+
+def test_explicit_skill_one_letter_added_is_not_flagged(clean_cv, source_text):
+    # candidato real de FITS (Jayendra Patel, 7 sep 2026): fuente "JD Edward",
+    # agente "JD Edwards".
+    cv = _explicit_cv_with_skill(clean_cv, "JD Edwards")
+    report = grounding.evaluate(cv, source_text + " JD Edward")
+    assert report.errors == []
+
+
+def test_explicit_skill_two_edits_away_still_blocks(clean_cv, source_text):
+    cv = _explicit_cv_with_skill(clean_cv, "Qzvbnmxx")
+    report = grounding.evaluate(cv, source_text + " Qzvbnmrt")
+    assert any(e.startswith("GROUNDING_TOKEN_NOT_FOUND") and "Qzvbnmxx" in e for e in report.errors)
+
+
+def test_explicit_short_skill_one_edit_away_still_blocks(clean_cv, source_text):
+    # la tolerancia de una letra solo aplica a palabras de 6+ letras
+    cv = _explicit_cv_with_skill(clean_cv, "Kxqla")
+    report = grounding.evaluate(cv, source_text + " Kxqlo")
+    assert any(e.startswith("GROUNDING_TOKEN_NOT_FOUND") and "Kxqla" in e for e in report.errors)
+
+
 SPANISH_SKILLS_BLOCK = (
     " HABILIDADES Atención al cliente y resolución de problemas "
     "Trabajo en equipo y comunicación efectiva "
@@ -278,6 +314,26 @@ def test_roman_numeral_range_with_en_dash_is_not_flagged(clean_cv, source_text):
     )
     report = grounding.evaluate(cv, source_text)
     assert report.errors == []
+
+
+def test_i_inside_dotted_acronym_is_not_flagged(clean_cv, source_text):
+    # candidato real de FITS (Elvis Esparra Nunez, 24 sep 2026): "selection and/or
+    # implementation of M.I.P. Projects" -- la "I" es una letra de una sigla con
+    # puntos, no un pronombre.
+    cv = copy.deepcopy(clean_cv)
+    cv["experience"][0]["bullets"][0] = (
+        "Supported the Manufacturing Department in the implementation of M.I.P. Projects."
+    )
+    report = grounding.evaluate(cv, source_text)
+    assert report.errors == []
+
+
+def test_genuine_i_statement_after_sentence_period_is_still_flagged(clean_cv, source_text):
+    # la excepcion de siglas no debe cubrir una "I" que empieza oracion tras un punto
+    cv = copy.deepcopy(clean_cv)
+    cv["experience"][0]["bullets"][0] = "Managed the M.I.P. program.I also trained new staff."
+    report = grounding.evaluate(cv, source_text)
+    assert any(e.startswith("GROUNDING_I_STATEMENT") for e in report.errors)
 
 
 def test_genuine_i_statement_before_laboratory_is_still_flagged(clean_cv, source_text):

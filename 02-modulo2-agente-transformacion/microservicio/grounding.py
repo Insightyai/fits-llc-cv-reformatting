@@ -25,6 +25,15 @@ _I_EXCEPTIONS_BEFORE = {"phase", "level", "class", "type", "operator", "part"}
 # guion ASCII y los guiones unicode de _DASH_RE (el en-dash es el que trae el texto
 # extraido de PDF real, ej. candidato Jayendra Patel, 4 sep 2026) ademas de "&,/".
 _ROMAN_NUMERAL_SEQUENCE_RE = re.compile(r"^\s*[&,/\-‐-―−]\s*(?:I{1,3}|IV|V)\b")
+# "I" como letra de una sigla con puntos (ej. "M.I.P."): precedida por una letra suelta
+# con punto, o seguida de punto + letra suelta + punto.
+_ACRONYM_BEFORE_RE = re.compile(r"(?:^|[^A-Za-z])[A-Za-z]\.$")
+_ACRONYM_AFTER_RE = re.compile(r"^\.[A-Za-z]\.")
+# Skills explicitas: se tolera una letra de diferencia en palabras de 6+ letras -- el
+# agente corrige erratas de la fuente al copiar la lista (casos reales: "Responsability"
+# -> "Responsibility", Elvis Esparra Nunez 24 sep 2026; "JD Edward" -> "JD Edwards",
+# Jayendra Patel 7 sep 2026).
+_FUZZY_MIN_LEN = 6
 
 # Palabras genericas de vocabulario profesional que un summary reescrito (regla 4 del
 # PRD) puede usar sin que esten literalmente en la fuente -- reduce ruido del check
@@ -115,7 +124,26 @@ def count_heuristic_jobs(source_text):
     return len(_PERIOD_RANGE_RE.findall(source_text or ""))
 
 
-def _check_source_backed(value, source_words, error_code, warning_code, report, label):
+def _within_one_edit(a, b):
+    if abs(len(a) - len(b)) > 1:
+        return False
+    if len(a) > len(b):
+        a, b = b, a
+    i = 0
+    while i < len(a) and a[i] == b[i]:
+        i += 1
+    if len(a) == len(b):
+        return a[i + 1 :] == b[i + 1 :]
+    return a[i:] == b[i + 1 :]
+
+
+def _near_match(token, source_words):
+    return len(token) >= _FUZZY_MIN_LEN and any(
+        len(w) >= _FUZZY_MIN_LEN and _within_one_edit(token, w) for w in source_words
+    )
+
+
+def _check_source_backed(value, source_words, error_code, warning_code, report, label, fuzzy=False):
     # any(), no all(): un all() se probo en produccion el 26 ago 2026 y en menos de
     # un dia bloqueo 3/3 candidatos reales de prueba con paráfrasis legitima del LLM
     # (ej. "MAX MRP II system" cuando la fuente solo dice "MRP system" en otro lado) --
@@ -124,8 +152,11 @@ def _check_source_backed(value, source_words, error_code, warning_code, report, 
     if not tokens:
         report.warnings.append(f"{warning_code}: {label} sin tokens verificables")
         return
-    if not any(t in source_words for t in tokens):
-        report.errors.append(f"{error_code}: {label} no aparece en la fuente")
+    if any(t in source_words for t in tokens):
+        return
+    if fuzzy and any(_near_match(t, source_words) for t in tokens):
+        return
+    report.errors.append(f"{error_code}: {label} no aparece en la fuente")
 
 
 def _check_literal_soft(value, source_words, warning_code, report):
@@ -146,6 +177,8 @@ def _check_i_statement(text, report):
         if prev in _I_EXCEPTIONS_BEFORE or following.lower().startswith("/o"):
             continue
         if _ROMAN_NUMERAL_SEQUENCE_RE.match(following):
+            continue
+        if _ACRONYM_BEFORE_RE.search(text[: m.start()]) or _ACRONYM_AFTER_RE.match(following):
             continue
         snippet = text[max(0, m.start() - 20) : m.end() + 10].strip()
         report.errors.append(f"GROUNDING_I_STATEMENT: {snippet!r}")
@@ -303,6 +336,7 @@ def evaluate(cv, source_text):
             _check_source_backed(
                 original, source_words, "GROUNDING_TOKEN_NOT_FOUND", "COMPANY_NOT_VERIFIABLE", report,
                 label=f"skill={skill!r} (original={original!r})" if use_originals else f"skill={skill!r}",
+                fuzzy=True,
             )
 
     heuristic_jobs = count_heuristic_jobs(source_text)
