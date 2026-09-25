@@ -1146,3 +1146,17 @@ Plan aprobado por Santiago: workflow nuevo y separado, en modo sombra (detecta y
 
 **Pendiente:** borrar a mano la fila vieja del candidato en "Errores de Procesamiento" (opcional).
 
+
+### 24 Sep 2026 — Revisión de salud del sistema: 2 falsos positivos de grounding corregidos (Elvis reprocesado), `NO_TEXT_LAYER` pasa a falla permanente
+
+**Revisión general (pedido de Santiago):** workflows activos (Poller, Processor, Flusher, Error Alert), `/health` de Railway en 200 y el Poller vivo, confirmado por evidencia downstream (Processor a las 20:55 UTC, justo después del tick de las :51). Se detectó un corte de ~26 h de todos los triggers de la instancia (23 sep 17:50 UTC → 24 sep 19:26 UTC, apenas 3 IDs de ejecución consumidos en ese lapso). Santiago confirmó que era el límite de ejecuciones del plan de n8n, ya resuelto. También se vio que el `Convert Resume Activity Poller` (`ioKEvVylitg7MHil`) está **desactivado**: sus últimas ejecuciones son 3 errores seguidos el 23 sep entre 02:03 y 02:13 UTC, coincidiendo con la actualización de n8n 2.40.5. Causa probable: `httpRequestWithAuthentication` bloqueado en el Code node, sin confirmar. La validación en modo sombra está en pausa.
+
+**Caso real: Elvis Esparra Nuñez** (`406167475`, job `10999557`, stepId `10727655`, `new_format`). Santiago lo vio en el widget "Latest Activity" de JazzHR movido a Convert Resume sin `.docx`. La ejecución `35548` del Processor falló con `GROUNDING_FAILED` por dos motivos, los dos falsos positivos confirmados contra el CV real (sacado del `content_base64` de la propia ejecución, sin cookie de JazzHR):
+1. `GROUNDING_I_STATEMENT: 'implementation of M.I.P. Projec'`: `\bI\b` tomaba la "I" de la sigla con puntos como pronombre. Fix: se ignora la "I" si la precede una letra suelta con punto o la sigue punto + letra + punto. Una "I" real después de un punto (`program.I also`) se sigue bloqueando.
+2. `GROUNDING_TOKEN_NOT_FOUND: skill='Responsibility'`: la fuente dice "Responsability". Fix (opción elegida por Santiago, ver `Decisiones.md`): en skills explícitas se tolera una letra de diferencia en palabras de 6+ letras. Cubre también el caso de Jayendra Patel del 7 sep ("JD Edward").
+
+TDD: 6 tests nuevos (4 casos reales, 3 en rojo antes del fix, y 2 de bloqueo que se mantienen), 107 unitarios en verde. CV real corrido en local contra Claude antes del deploy: `estado=review`, sin errores. Commit `ee4295a`, deploy a Railway confirmado con el status del commit en GitHub (`success`) antes de reprocesar. Reproceso vía webhook interno del Processor: `{"success":true,"resultado":"OK","emailSent":true}`, `.docx` New Format en SharePoint y correo enviado dentro del horario.
+
+**`NO_TEXT_LAYER` como falla permanente:** Joanna (`414464832`, PDF escaneado sin capa de texto) se reintentó 5 veces en 2 jobs (cada ~50 min, en cada barrido), porque `NO_TEXT_LAYER` no estaba en `KNOWN_PERMANENT_CODES` de `Registrar Procesado` y por eso tampoco aparecía en "Errores de Procesamiento". Se agregó vía `PUT /workflows/6gxbJ87rfAsbcCOO` con body mínimo, aplicado entre ciclos. Verificado antes/después: mismos 17 nodos, solo cambió `Registrar Procesado`, conexiones y settings iguales, `active: true`, `staticData` intacto (64 `processedPairs`, `scanOffset` 25).
+
+**Pendiente:** confirmar en el próximo barrido que Joanna queda marcada y registrada en "Errores de Procesamiento"; revisar el caso `316214380` (`skill='SolidWorks'`, 23 sep, sin investigar); diagnosticar y reactivar el Activity Poller.

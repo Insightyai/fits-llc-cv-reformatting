@@ -267,6 +267,19 @@ Inspeccionando el dashboard de JazzHR con DevTools, Santiago encontró un endpoi
 
 **Impacto:** `cv-schema.json` (campo nuevo requerido en `_meta`; vacío con `skills_source: "derived"`), `prompt/transform-v1.md` (cambia el hash de `prompt_version`), `grounding.py` y el fixture de Shirley Mercado. Commit `1afff21`, desplegado a Railway el 23 sep 2026. Verificado con TDD (3 tests nuevos; 101 unitarios y 7 `llm` en verde) y con el CV real contra Claude en local y en producción: el candidato se reprocesó con `resultado: OK` y se envió el correo al reclutador.
 
+### 24 Sep 2026 — Skills explícitas toleran una letra de diferencia (erratas de la fuente corregidas por el agente)
+
+**Contexto:** Elvis Esparra Nuñez (`406167475`, job `10999557`, New Format) quedó bloqueado, entre otros motivos, por `GROUNDING_TOKEN_NOT_FOUND: skill='Responsibility'`. Su lista SKILLS dice "Responsability" (errata) y el agente la corrigió al copiarla. Es el segundo caso real del mismo patrón: el 7 sep Jayendra Patel quedó bloqueado por `'JD Edwards'` contra "JD Edward" en la fuente, y en ese momento se dejó sin cambios por considerarlo un caso aislado.
+
+**Opciones evaluadas:**
+1. **Elegida por Santiago:** en el chequeo estricto de skills explícitas, si ninguna palabra coincide exacta, aceptar una palabra de 6+ letras que esté a una edición (sustitución, inserción o borrado de una letra) de una palabra de la fuente.
+2. Pedirle al agente que copie las skills literales, erratas incluidas. Se descartó porque la errata terminaría en el `.docx` que recibe el reclutador.
+3. Dejarlo sin cambios. Se descartó porque ya son dos casos reales.
+
+**Razón:** una skill inventada casi nunca queda a una sola letra de una palabra real de la fuente, así que la protección contra invenciones se mantiene. El mínimo de 6 letras evita coincidencias casuales entre palabras cortas. La tolerancia aplica solo a `skills[]` explícitas, no a empresa, certificaciones ni métricas.
+
+**Impacto:** solo `grounding.py` (`_within_one_edit`, `_near_match` y un parámetro `fuzzy` en `_check_source_backed`, activado solo para skills). En el mismo commit se corrigió otro falso positivo de Elvis: `GROUNDING_I_STATEMENT` marcaba la "I" de la sigla "M.I.P.". Commit `ee4295a`, TDD con 6 tests nuevos (107 unitarios en verde), CV real verificado en local (`review`) y reprocesado en producción con `resultado: OK`.
+
 ---
 
 ## Decisiones Pendientes
