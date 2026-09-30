@@ -181,17 +181,17 @@ def _check_i_statement(text, report):
         if _ACRONYM_BEFORE_RE.search(text[: m.start()]) or _ACRONYM_AFTER_RE.match(following):
             continue
         snippet = text[max(0, m.start() - 20) : m.end() + 10].strip()
-        report.errors.append(f"GROUNDING_I_STATEMENT: {snippet!r}")
+        report.warnings.append(f"I_STATEMENT_DETECTED: {snippet!r}")
 
     for word in ("my", "mine"):
         for m in re.finditer(rf"\b{word}\b", text, re.IGNORECASE):
             snippet = text[max(0, m.start() - 20) : m.end() + 10].strip()
-            report.errors.append(f"GROUNDING_I_STATEMENT: {snippet!r}")
+            report.warnings.append(f"I_STATEMENT_DETECTED: {snippet!r}")
 
     # case-sensitive a proposito: excluye "ME"/"Me" (Maine, Mechanical Engineering)
     for m in re.finditer(r"\bme\b", text):
         snippet = text[max(0, m.start() - 20) : m.end() + 10].strip()
-        report.errors.append(f"GROUNDING_I_STATEMENT: {snippet!r}")
+        report.warnings.append(f"I_STATEMENT_DETECTED: {snippet!r}")
 
 
 def _metric_bounded_in_despaced(metric, source_despaced):

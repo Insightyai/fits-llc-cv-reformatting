@@ -83,11 +83,23 @@ def test_null_period_is_warning_not_error(clean_cv, source_text):
     assert any(w.startswith("EMPTY_PERIOD") for w in report.warnings)
 
 
-def test_i_statement_bullet_is_error(clean_cv, source_text):
+def test_i_statement_bullet_is_warning_not_error(clean_cv, source_text):
     cv = copy.deepcopy(clean_cv)
     cv["experience"][0]["bullets"][0] = "I managed environmental compliance reporting."
     report = grounding.evaluate(cv, source_text)
-    assert any(e.startswith("GROUNDING_I_STATEMENT") for e in report.errors)
+    assert report.errors == []
+    assert any(w.startswith("I_STATEMENT_DETECTED") for w in report.warnings)
+
+
+def test_i_in_ampersand_acronym_does_not_block(clean_cv, source_text):
+    # candidato real de FITS (Ismael Fuentes Cruz, 30 sep 2026): "FF&I (Formulation,
+    # Fill & Inspection)" -- la "I" de la sigla bloqueaba todo el CV.
+    cv = copy.deepcopy(clean_cv)
+    cv["experience"][0]["bullets"][0] = (
+        "Supported operational operations for FF&I (Formulation, Fill & Inspection)."
+    )
+    report = grounding.evaluate(cv, source_text)
+    assert report.errors == []
 
 
 def test_domain_exception_phase_i_is_not_flagged(clean_cv, source_text):
@@ -333,7 +345,7 @@ def test_genuine_i_statement_after_sentence_period_is_still_flagged(clean_cv, so
     cv = copy.deepcopy(clean_cv)
     cv["experience"][0]["bullets"][0] = "Managed the M.I.P. program.I also trained new staff."
     report = grounding.evaluate(cv, source_text)
-    assert any(e.startswith("GROUNDING_I_STATEMENT") for e in report.errors)
+    assert any(w.startswith("I_STATEMENT_DETECTED") for w in report.warnings)
 
 
 def test_genuine_i_statement_before_laboratory_is_still_flagged(clean_cv, source_text):
@@ -341,7 +353,7 @@ def test_genuine_i_statement_before_laboratory_is_still_flagged(clean_cv, source
     cv = copy.deepcopy(clean_cv)
     cv["experience"][0]["bullets"][0] = "Managed the laboratory. I also trained new staff."
     report = grounding.evaluate(cv, source_text)
-    assert any(e.startswith("GROUNDING_I_STATEMENT") for e in report.errors)
+    assert any(w.startswith("I_STATEMENT_DETECTED") for w in report.warnings)
 
 
 def test_invented_metric_is_error(clean_cv, source_text):
