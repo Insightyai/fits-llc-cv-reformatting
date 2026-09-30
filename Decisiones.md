@@ -280,6 +280,14 @@ Inspeccionando el dashboard de JazzHR con DevTools, Santiago encontró un endpoi
 
 **Impacto:** solo `grounding.py` (`_within_one_edit`, `_near_match` y un parámetro `fuzzy` en `_check_source_backed`, activado solo para skills). En el mismo commit se corrigió otro falso positivo de Elvis: `GROUNDING_I_STATEMENT` marcaba la "I" de la sigla "M.I.P.". Commit `ee4295a`, TDD con 6 tests nuevos (107 unitarios en verde), CV real verificado en local (`review`) y reprocesado en producción con `resultado: OK`.
 
+### 29 Sep 2026 — Soporte de `.doc` legacy (Word 97-2003) en `extract.py` con `olefile`
+
+**Contexto:** segundo caso real de CV en `.doc` binario (Yazmin Rosado Alicea, después de Baxter Rains el 14 ago). Hasta ahora `extract.py` lo rechazaba con `CORRUPT_FILE` (fail-closed) y el candidato quedaba sin CV.
+
+**Decisión (opción A, elegida por Santiago):** leer el `.doc` con `olefile` (librería Python pura, `olefile==0.47`) y extraer el texto de la tabla de piezas (Clx/PlcPcd) del stream `WordDocument`, descartando el código de los campos de Word. Se descartó la opción B (`antiword` o LibreOffice como paquete del sistema en Railway): obligaba a tocar la config de build (Nixpacks), LibreOffice suma ~500 MB a la imagen y no aporta nada para extraer texto plano.
+
+**Impacto:** `extract.py` (`kind = "doc"`, mismo pipeline de sanitizado y umbrales que DOCX) y `requirements.txt`. Un `.doc` dañado o sin tabla de piezas sigue fallando cerrado con `CORRUPT_FILE`. Las mayúsculas aplicadas por estilo de Word (All Caps) no se reflejan en el texto extraído; no afecta al render, porque los templates ya aplican `|upper` donde corresponde. Commit `eee66af`, TDD (108 unitarios en verde), verificado en local y en producción con el `.doc` crudo (`state: review`).
+
 ---
 
 ## Decisiones Pendientes
