@@ -1,8 +1,10 @@
 import io
 import re
+import struct
 import unicodedata
 from dataclasses import dataclass, field
 
+import olefile
 import pypdf
 from docx import Document
 
@@ -122,7 +124,7 @@ def _sniff_kind(data: bytes) -> str:
     if data[:2] == b"PK":
         return "docx"
     if data[:8] == b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1":
-        return "legacy_doc"
+        return "doc"
     return "text"
 
 
@@ -268,6 +270,61 @@ def _extract_docx(data: bytes):
     return "\n".join(units), len(units)
 
 
+# .doc legacy (Word 97-2003, [MS-DOC]): el texto vive en el stream WordDocument, repartido en
+# piezas que describe la tabla de piezas (Clx/PlcPcd) del stream 0Table/1Table. Cada pieza es
+# cp1252 comprimido (1 byte por caracter) o UTF-16LE. Casos reales: Baxter Rains (14 ago) y
+# Yazmin Rosado Alicea (29 sep 2026), antes bloqueados con CORRUPT_FILE.
+_DOC_CHAR_MAP = {"\r": "\n", "\x0b": "\n", "\x0c": "\n", "\x07": "\t", "\x1e": "-", "\x1f": ""}
+
+
+def _strip_doc_fields(text: str) -> str:
+    # campos de Word: \x13 codigo \x14 resultado \x15 -- se conserva solo el resultado
+    out, stack = [], []
+    for ch in text:
+        if ch == "\x13":
+            stack.append(True)
+        elif ch == "\x14" and stack:
+            stack[-1] = False
+        elif ch == "\x15" and stack:
+            stack.pop()
+        elif not stack or not stack[-1]:
+            out.append(ch)
+    return "".join(out)
+
+
+def _extract_doc(data: bytes):
+    ole = olefile.OleFileIO(io.BytesIO(data))
+    word = ole.openstream("WordDocument").read()
+    flags = struct.unpack_from("<H", word, 0x0A)[0]
+    table = ole.openstream("1Table" if flags & 0x0200 else "0Table").read()
+    fc_clx, lcb_clx = struct.unpack_from("<II", word, 0x01A2)
+    clx = table[fc_clx:fc_clx + lcb_clx]
+
+    pos = 0
+    while clx[pos] == 0x01:
+        pos += 3 + struct.unpack_from("<H", clx, pos + 1)[0]
+    if clx[pos] != 0x02:
+        raise ExtractionError("CORRUPT_FILE", "tabla de piezas (Pcdt) no encontrada en el .doc")
+    lcb = struct.unpack_from("<I", clx, pos + 1)[0]
+    plc = clx[pos + 5:pos + 5 + lcb]
+    n = (lcb - 4) // 12
+    cps = struct.unpack_from(f"<{n + 1}I", plc, 0)
+
+    pieces = []
+    for i in range(n):
+        fc = struct.unpack_from("<I", plc, 4 * (n + 1) + 8 * i + 2)[0]
+        count = cps[i + 1] - cps[i]
+        if fc & 0x40000000:
+            start = (fc & 0x3FFFFFFF) // 2
+            pieces.append(word[start:start + count].decode("cp1252", errors="replace"))
+        else:
+            pieces.append(word[fc:fc + 2 * count].decode("utf-16-le", errors="replace"))
+
+    text = _strip_doc_fields("".join(pieces))
+    text = "".join(_DOC_CHAR_MAP.get(ch, ch) for ch in text)
+    return text, text.count("\n") + 1
+
+
 def _fix_letter_spacing(text: str) -> str:
     fixed_lines = []
     for line in text.split("\n"):
@@ -301,16 +358,13 @@ def _sanitize(text: str) -> str:
 def extract_text(filename: str, data: bytes) -> ExtractResult:
     kind = _sniff_kind(data)
 
-    if kind == "legacy_doc":
-        raise ExtractionError(
-            "CORRUPT_FILE", f"{filename}: formato .doc legacy (binario, pre-2007) no soportado, se requiere PDF o DOCX"
-        )
-
     try:
         if kind == "pdf":
             raw, units = _extract_pdf(data)
         elif kind == "docx":
             raw, units = _extract_docx(data)
+        elif kind == "doc":
+            raw, units = _extract_doc(data)
         else:
             kind = "text"
             raw, units = data.decode("utf-8", errors="replace"), 1

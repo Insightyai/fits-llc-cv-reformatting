@@ -173,7 +173,7 @@ def test_corrupt_docx():
     assert exc_info.value.code == "CORRUPT_FILE"
 
 
-def test_legacy_doc_rejected():
+def test_corrupt_legacy_doc_rejected():
     # firma OLE2/CFB real de un .doc binario (formato Word pre-2007) descargado de un
     # candidato real de FITS: sin esta deteccion, cae al fallback de texto plano
     # (utf-8 errors="replace") y produce basura decodificable que el LLM alucina como CV real.
@@ -181,6 +181,23 @@ def test_legacy_doc_rejected():
     with pytest.raises(ExtractionError) as exc_info:
         extract_text("resume.doc", data)
     assert exc_info.value.code == "CORRUPT_FILE"
+
+
+YAZMIN_DOC_PATH = CV_PDF_PATH.parent / "Resume- Yazmin Rosado Alicea.doc"
+
+
+def test_doc_real_yazmin_rosado():
+    # .doc legacy real (29 sep 2026): candidata en job Closed, antes bloqueada con CORRUPT_FILE
+    result = extract_text("Yazmin_Rosado_Alicea.doc", YAZMIN_DOC_PATH.read_bytes())
+
+    assert result.kind == "doc"
+    assert "Yazmin Rosado Alicea" in result.text
+    assert "Summary of Qualifications" in result.text
+    for company in ("Baxter Healthcare", "Eckart America", "Michelin North America", "HOVENSA"):
+        assert company in result.text
+    for year in ("2020", "2017", "2012", "2007"):
+        assert year in result.text
+    assert "\x07" not in result.text and "\r" not in result.text
 
 
 def test_source_truncated():
