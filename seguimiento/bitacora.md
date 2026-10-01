@@ -1174,3 +1174,29 @@ TDD: 6 tests nuevos (4 casos reales, 3 en rojo antes del fix, y 2 de bloqueo que
 
 **Pendiente:** Baxter Rains quedó marcado como `CORRUPT_FILE` (falla permanente), así que no se reintenta solo; reprocesarlo a mano si todavía está en Convert Resume. Preguntar a FITS si mover candidatos en jobs cerrados es habitual; si lo es, priorizar el diagnóstico y la reactivación del Activity Poller.
 
+
+
+### 30 Sep 2026 — Candidato bloqueado por falso positivo de primera persona ("FF&I"): `I_STATEMENT` pasa a warning y candidato reprocesado
+
+**Caso real:** Santiago vio que Ismael Fuentes Cruz (`214217876`, job `10807785` "Process Engineer", stepId `10727655`, `new_format`) llevaba más de una hora en `9. CONVERT RESUME-NEW FORMAT` sin CV generado.
+
+**Diagnóstico:** el sistema estaba sano (cupo de n8n en verde según el monitor, Poller corriendo, 5 ejecuciones del Processor en el día). El Poller lo detectó a las 21:15 UTC, dentro de la latencia normal del barrido rotativo. La ejecución `38467` del Processor falló en `/transform` con `GROUNDING_FAILED: GROUNDING_I_STATEMENT: 'l operations for FF&I (Formulat'`: `\bI\b` toma la "I" de la sigla "FF&I" porque `&` cuenta como límite de palabra. Como `GROUNDING_FAILED` es falla permanente, el Poller ya había marcado el par en `processedPairs` y no iba a reintentar.
+
+**Decisión (ver `Decisiones.md`):** en vez de otra excepción al regex, el chequeo pasa a warning `I_STATEMENT_DETECTED`. Nunca atrapó una invención real y ya había bloqueado 3 CVs reales por error.
+
+**Fix con TDD:** 3 tests adaptados y 1 nuevo con el caso real, los 4 en rojo antes del cambio; 109 unitarios en verde después. CV real (sacado del `content_base64` de la ejecución `38467`) corrido en local contra Claude: `state: review`, 10 empresas. Commit `c4a019f`, deploy a Railway confirmado con el status del commit en GitHub (`success`) y `/health` en 200 antes de reprocesar.
+
+**Reproceso vía webhook interno del Processor:** `{"success":true,"resultado":"OK","emailSent":true}`, `.docx` New Format en SharePoint y correo enviado.
+
+**Pendiente:** `years_experience` de Ismael quedó en `null` (`YEARS_EXPERIENCE_UNKNOWN`), porque un período trae texto entre paréntesis (`May 2026 – Sep 2026 (Shut Down Program)`) y `dates.py` no lo interpreta. Revisar si el header de años de New Format sale vacío en su `.docx`. Borrar a mano su fila vieja en "Errores de Procesamiento" (opcional).
+
+
+### 30 Sep 2026 — Joanna Rivera: `NO_TEXT_LAYER` por un PDF de "Microsoft Print To PDF" con el texto convertido en trazos, procesada a mano con otro CV suyo
+
+**Caso real:** Joanna M. Rivera (`414464832`, job `11025832` "Sr Specialist QA", stepId `10727629`, `non_template`), fila `NO_TEXT_LAYER` en "Errores de Procesamiento" (ejecución `38321` del Processor, 14:56 UTC). Es la misma candidata del 24 sep: el fix de `KNOWN_PERMANENT_CODES` funcionó (falló una sola vez, par marcado en `processedPairs` y fila visible).
+
+**Diagnóstico (corregido por Santiago):** el primer diagnóstico lo trató como un CV escaneado fuera de alcance, y era incorrecto. `Joanna_Resume_26.pdf` (el documento más reciente en JazzHR, 23 abr 2026) es un CV digital y legible, generado con "Microsoft Print To PDF", pero el driver convirtió cada letra en un trazo vectorial: 0 fuentes, 0 imágenes y 3.825 trazos en 2 páginas. `pypdf` no encuentra texto. El mensaje "probablemente escaneado" de `extract.py` confunde en este caso.
+
+**Proceso manual (pedido de Santiago):** Santiago trajo otro CV suyo de JazzHR (`Rivera_Joanna_20260409182151.pdf`, oct 2025, misma impresora pero con fuentes embebidas, 4.336 caracteres). En local dio `state: review`, 9 empresas (las 5 de "ADDITIONAL EXPERIENCE" sin fechas, igual que en la fuente). Se procesó con un workflow temporal de n8n (`TEMP - Proceso manual Joanna Rivera`, copia exacta del Processor con otra ruta de webhook y `Preparar Body Transform` leyendo el archivo del body), ejecución `38489`: `resultado: OK`, `.docx` Non Template en `Resumes/Joanna Rivera (414464832)/`, correo enviado a `jsoto@fitspr.com` y fila en Sheet1. Workflow temporal borrado al terminar.
+
+**Pendiente:** decidir si se agrega lectura visual (render de páginas + transcripción con Claude) para PDFs sin capa de texto; requiere `pymupdf` como dependencia nueva. `years_experience` queda en `null` cuando hay empleos sin fechas (mismo síntoma que Ismael); revisar el header de años de New Format en esos casos. Borrar a mano la fila vieja de Joanna en "Errores de Procesamiento" (opcional).

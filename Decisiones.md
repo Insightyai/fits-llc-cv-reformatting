@@ -288,6 +288,14 @@ Inspeccionando el dashboard de JazzHR con DevTools, Santiago encontró un endpoi
 
 **Impacto:** `extract.py` (`kind = "doc"`, mismo pipeline de sanitizado y umbrales que DOCX) y `requirements.txt`. Un `.doc` dañado o sin tabla de piezas sigue fallando cerrado con `CORRUPT_FILE`. Las mayúsculas aplicadas por estilo de Word (All Caps) no se reflejan en el texto extraído; no afecta al render, porque los templates ya aplican `|upper` donde corresponde. Commit `eee66af`, TDD (108 unitarios en verde), verificado en local y en producción con el `.doc` crudo (`state: review`).
 
+### 30 Sep 2026 — El chequeo de primera persona (`I_STATEMENT`) pasa de error a warning
+
+**Contexto:** tercer falso positivo real de `GROUNDING_I_STATEMENT` (Ismael Fuentes Cruz, sigla "FF&I"; antes numeración romana y "M.I.P."). Revisando el historial, las invenciones reales atrapadas por `grounding.py` salieron todas de los chequeos de contenido (skills inventadas de Ruth Sotomayor y Luis Moreno, nombre alucinado de Willard); el chequeo de primera persona nunca atrapó nada real. Cada falso positivo deja al candidato sin CV, porque `GROUNDING_FAILED` es falla permanente.
+
+**Decisión (opción elegida por Santiago):** degradar el chequeo a warning `I_STATEMENT_DETECTED` (el CV queda en `review` y se entrega, porque `REVIEW_BLOCKS_DELIVERY=false`), en vez de agregar otra excepción al regex para `&`. Se descartó el parche puntual porque cada sigla nueva (`I&C`, `R&I`, etc.) iba a requerir otro fix. Un "I" que se escape es un error de estilo que el reclutador corrige en segundos, no una invención.
+
+**Impacto:** solo `grounding.py` (los 3 puntos de emisión) y la tabla de `agente/CONTRATO-AGENTE.md`. Los chequeos de nombre, empresa, años, métricas y skills siguen bloqueando como error. Commit `c4a019f`, TDD (109 unitarios en verde).
+
 ---
 
 ## Decisiones Pendientes
