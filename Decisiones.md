@@ -299,6 +299,8 @@ Inspeccionando el dashboard de JazzHR con DevTools, Santiago encontró un endpoi
 ---
 
 ## Decisiones Pendientes
+- [ ] Verificar en producción, con la próxima falla permanente real, que la notificación al reclutador asignado (construida y desplegada el 5 nov 2026, ver `seguimiento/bitacora.md`) sale correctamente dentro de horario laboral y se encola/despacha bien fuera de horario — Santiago decidió esperar un caso real en vez de forzar un reproceso de prueba
+- [ ] Ampliar la tolerancia de `grounding.py` para skills explícitas de 1 a 2 ediciones de diferencia — decisión explícita de Santiago (5 nov 2026): no todavía. Un solo caso real (Mayra Salas, "StatGrafics" vs. "StatGraphics") no justifica tocar un chequeo anti-invención que ya se revirtió una vez por sobre-tolerancia (ver 27 ago 2026). Esperar un segundo caso real del mismo patrón.
 - [x] Google Drive vs. SharePoint como destino final de entrega de CVs transformados — resuelto: SharePoint, sitio `Operaciones-RecursosHumanos`
 - [x] Sitio de SharePoint propio con App Registration nuevo, vs. reutilizar el de Contract Renewal — resuelto: sitio propio
 - [x] Registrar Tenant ID / Client ID del Azure AD App Registration para este sitio — recibidos, en `.env` local
