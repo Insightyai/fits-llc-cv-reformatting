@@ -1239,3 +1239,17 @@ Ambos `PUT` confirmados con `HTTP 200`, ambos workflows siguen `active: true`, c
 **Regla nueva (Santiago):** todo trabajo para FITS se registra en este Sheet. Quedó en la sección "Registro de horas de mantenimiento" de `CLAUDE.md` de `cv-reformatting`, `contract-renewal` y `fits-llc` (Fase 1).
 
 **Pendiente:** dato de horas contratadas del paquete de mantenimiento vigente (B5). Lectura final del contador de octubre en el dashboard de n8n, si existe.
+
+### 6 Nov 2026 — Primera alerta real de falla permanente, y falso positivo de grounding por versalitas (Melitza Pagan Nazario)
+
+**Notificación de falla verificada en producción:** cerró el pendiente del 5 nov. A las 3:15 PM llegó a ccancel@fitspr.com el correo "No se pudo generar el CV: Melitza Pagan Nazario" (job "Quality Engineer", Medtronic - Workflow 2024, Non Template), dentro del horario laboral. Ejecución n8n `49234` del Processor, rama nueva de falla completa hasta `Enviar Notificación Falla`.
+
+**Diagnóstico:** `candidateId 439189095`, job `11108472`, stepId `10727654`. El Processor usó el fallback de resume (`resume_6ab571e2d4082.pdf`, PDF de Google Docs, título "Resumen Ingles Melitza.docx") y `/transform` devolvió `GROUNDING_FAILED: GROUNDING_TOKEN_NOT_FOUND: company='Hamilton Sundstrand' no aparece en la fuente` (único error). El CV tiene los encabezados en versalitas y `pypdf` extrae la primera letra separada del resto: `[H\nAMILTON\nS\nUNDSTRAND\n]`. La empresa sí está en el CV, así que es un falso positivo, no una invención. El nombre (`M\nELITZA`) pasó porque ya se verificaba sin espacios. El CV se obtuvo del `content_base64` guardado en la propia ejecución de n8n, sin pasar por JazzHR.
+
+**Fix:** `grounding.py` verifica la empresa también sin espacios (`despace`) cuando tiene 6 letras o más, mismo criterio que el nombre. TDD: test en rojo con el caso real y test de que una empresa corta no coincide por casualidad; 111 unitarios en verde. Commit `2443d7e`, deploy a Railway confirmado (status de GitHub `success`). Verificado con el CV real: en local y en producción pasó de `GROUNDING_FAILED` a `review`.
+
+**Reproceso:** por el webhook interno del Processor, `resultado: OK`, `Non Template.docx` en SharePoint y correo de éxito enviado al reclutador. La fila vieja en "Errores de Procesamiento" queda para borrar a mano (opcional).
+
+**Otra falla del mismo día, sin cambios:** Nelson Santiago (`106057708`, job `11109526` "Energy/ Project Consultant", New Format, ejecución `49244`, 3:45 PM) subió el CV en `.odt` (LibreOffice). `extract.py` lo intenta leer como DOCX y falla con `CORRUPT_FILE`. El bloqueo es correcto y el correo de falla salió a ncaraballo@fitspr.com. Es el primer caso de `.odt`; se espera un segundo antes de agregar soporte.
+
+**Nota de seguridad:** durante la sesión se pegó por error una API key de Anthropic en el chat (no se usó). Se recomendó rotarla.

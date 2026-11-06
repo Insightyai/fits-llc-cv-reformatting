@@ -296,6 +296,14 @@ Inspeccionando el dashboard de JazzHR con DevTools, Santiago encontró un endpoi
 
 **Impacto:** solo `grounding.py` (los 3 puntos de emisión) y la tabla de `agente/CONTRATO-AGENTE.md`. Los chequeos de nombre, empresa, años, métricas y skills siguen bloqueando como error. Commit `c4a019f`, TDD (109 unitarios en verde).
 
+### 6 Nov 2026 — La empresa también se verifica sin espacios (texto partido por versalitas)
+
+**Contexto:** Melitza Pagan Nazario (Non Template) quedó bloqueada con `GROUNDING_TOKEN_NOT_FOUND: company='Hamilton Sundstrand'`. Su CV es un PDF de Google Docs con encabezados en versalitas: `pypdf` separa la primera letra del resto (`H\nAMILTON\nS\nUNDSTRAND`), así que ningún token de la empresa coincide aunque está en el CV. El nombre del candidato ya se verificaba sin espacios (`despace()`) y por eso pasó.
+
+**Decisión:** si la empresa completa sin espacios (6 letras o más, `MIN_DESPACED_COMPANY_LEN`) aparece seguida en la fuente sin espacios, se da por verificada sin pasar por el chequeo de tokens. Mismo criterio que `full_name`, métricas y años. Una empresa inventada no puede aparecer letra por letra en la fuente, así que el chequeo anti-invención no pierde nada. El mínimo de 6 letras evita que siglas cortas coincidan por casualidad dentro de otras palabras. Se limitó a empresa: skills y certificaciones siguen igual porque no hay un caso real.
+
+**Impacto:** solo `grounding.py`. TDD con 2 tests nuevos (111 unitarios en verde), commit `2443d7e` desplegado a Railway.
+
 ---
 
 ## Decisiones Pendientes
