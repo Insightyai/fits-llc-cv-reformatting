@@ -13,6 +13,7 @@ _TOKEN_SPLIT_RE = re.compile(r"[^\w]+", re.UNICODE)
 
 LEGAL_SUFFIXES = {"inc", "llc", "corp", "corporation", "co", "ltd", "sa", "plc", "gmbh"}
 STOPWORDS = {"the", "and", "of", "de", "la", "el", "los", "las"}
+MIN_DESPACED_COMPANY_LEN = 6
 
 _PHONE_RE = re.compile(r"\b\d{3}[-.\s]\d{3}[-.\s]\d{4}\b")
 _YEAR_RE = re.compile(r"(?<!\d)(?:19|20)\d{2}(?!\d)")
@@ -267,11 +268,15 @@ def evaluate(cv, source_text):
         )
 
     for job in experience:
-        _check_source_backed(
-            job.get("company", ""), source_words,
-            "GROUNDING_TOKEN_NOT_FOUND", "COMPANY_NOT_VERIFIABLE", report,
-            label=f"company={job.get('company')!r}",
-        )
+        company_desp = despace(job.get("company", ""))
+        # versalitas de Google Docs: pypdf parte "Hamilton" en "H\nAMILTON" (Melitza
+        # Pagan Nazario, 6 nov 2026) -- mismo criterio sin espacios que full_name.
+        if not (len(company_desp) >= MIN_DESPACED_COMPANY_LEN and company_desp in source_desp):
+            _check_source_backed(
+                job.get("company", ""), source_words,
+                "GROUNDING_TOKEN_NOT_FOUND", "COMPANY_NOT_VERIFIABLE", report,
+                label=f"company={job.get('company')!r}",
+            )
         _check_literal_soft(job.get("title", ""), source_words, "TITLE_NOT_LITERAL_IN_SOURCE", report)
 
         period = job.get("period") or ""

@@ -440,3 +440,24 @@ def test_metric_that_is_substring_of_longer_source_number_is_still_error(clean_c
     padded_source = source_text + " Processed batch code 1500 during the audit."
     report = grounding.evaluate(cv, padded_source)
     assert any("GROUNDING_METRIC_NOT_FOUND" in e and "500" in e for e in report.errors)
+
+
+def test_company_split_by_small_caps_extraction_is_not_false_positive(clean_cv, source_text):
+    # candidata real de FITS (Melitza Pagan Nazario, Non Template, 6 nov 2026): PDF de
+    # Google Docs con encabezados en versalitas -- pypdf separa la primera letra (mas
+    # grande) del resto de la palabra, asi que la fuente dice "H\nAMILTON\nS\nUNDSTRAND"
+    # y ningun token de "Hamilton Sundstrand" matchea aunque la empresa si esta ahi.
+    cv = copy.deepcopy(clean_cv)
+    cv["experience"][0]["company"] = "Hamilton Sundstrand"
+    small_caps_source = source_text + "\n[1997] – [2004] [MANUFACTURING ENGINEER], [H\nAMILTON\nS\nUNDSTRAND\n]"
+    report = grounding.evaluate(cv, small_caps_source)
+    assert not any("Hamilton Sundstrand" in e for e in report.errors)
+
+
+def test_short_company_does_not_match_inside_despaced_source(clean_cv, source_text):
+    # el fallback sin espacios no aplica a empresas cortas: "Abbe" aparece seguido en
+    # el texto sin espacios de cualquier fuente que diga "...a bbe..." por casualidad.
+    cv = copy.deepcopy(clean_cv)
+    cv["experience"][0]["company"] = "Abbe"
+    report = grounding.evaluate(cv, source_text + " gra bbed")
+    assert any(e.startswith("GROUNDING_TOKEN_NOT_FOUND") and "Abbe" in e for e in report.errors)
